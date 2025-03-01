@@ -78,6 +78,7 @@ public class TemperatureSensorRootConfig extends DefaultBatchConfiguration {
                 .resource(rawDailyOutputInCsv)
                 .delimited()
                 .delimiter(",")
+//                .fieldExtractor(item -> new Object[]{item.getDate(), item.getType(), item.getValue()})
                 .names(new String[]{"date", "type", "value"}) // DataAnomaly fields name
                 .build();
     }
