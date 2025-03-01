@@ -77,7 +77,9 @@ public class TemperatureSensorRootConfig extends DefaultBatchConfiguration {
                 .name("dataAnomalyWriter")
                 .resource(rawDailyOutputInCsv)
 //                .lineAggregator(item -> item.getDate() + "," + item.getType().name() + "," + item.getValue())
-                .delimited()
+//                .formatted()
+//                .format("%s,%s,%s")
+                .delimited() // you can use formatted here
                 .delimiter(",")
 //                .fieldExtractor(item -> new Object[]{item.getDate(), item.getType(), item.getValue()})
                 .names(new String[]{"date", "type", "value"}) // DataAnomaly fields name
