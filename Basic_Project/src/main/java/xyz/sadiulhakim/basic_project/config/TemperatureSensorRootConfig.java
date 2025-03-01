@@ -92,7 +92,7 @@ public class TemperatureSensorRootConfig extends DefaultBatchConfiguration {
                 // convert it into RawDailySensorData and pass it to ItemProcessor then
                 // ItemProcessor would do some processing and convert that RawDailySensorData into SensorData then
                 // StaxEventItemWriter would write it to destination.
-                // So, here batch works with only one item at a time.
+                // So, here batch works with only one item/line at a time.
                 .reader(rawDataReader())
                 .processor(new RawToSensorDataItemProcessor())
                 .writer(sensorDataWriter())
