@@ -9,5 +9,6 @@
 2. ItemWriter
     1. StaxEventWriter
         1. Marshaller
+    2. FlatFileItemWriter
 
 `Job consists of Multiple Steps and Step consists of Reader,Processor(Optional),Writer`
