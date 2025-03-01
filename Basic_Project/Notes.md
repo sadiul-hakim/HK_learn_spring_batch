@@ -9,3 +9,5 @@
 2. ItemWriter
     1. StaxEventWriter
         1. Marshaller
+
+`Job consists of Multiple Steps and Step consists of Reader,Processor(Optional),Writer`

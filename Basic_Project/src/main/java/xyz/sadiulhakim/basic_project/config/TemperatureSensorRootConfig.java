@@ -7,7 +7,9 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.batch.item.xml.StaxEventItemWriter;
 import org.springframework.batch.item.xml.builder.StaxEventItemReaderBuilder;
@@ -19,6 +21,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.WritableResource;
 import org.springframework.transaction.PlatformTransactionManager;
+import xyz.sadiulhakim.basic_project.pojo.DataAnomaly;
 import xyz.sadiulhakim.basic_project.pojo.RawDailySensorData;
 import xyz.sadiulhakim.basic_project.pojo.SensorData;
 
@@ -68,6 +71,18 @@ public class TemperatureSensorRootConfig extends DefaultBatchConfiguration {
     }
 
     @Bean
+    @Qualifier("dataAnomalyWriter")
+    FlatFileItemWriter<DataAnomaly> dataAnomalyWriter() {
+        return new FlatFileItemWriterBuilder<DataAnomaly>()
+                .name("dataAnomalyWriter")
+                .resource(rawDailyOutputInCsv)
+                .delimited()
+                .delimiter(",")
+                .names(new String[]{"date", "type", "value"}) // DataAnomaly fields name
+                .build();
+    }
+
+    @Bean
     @Qualifier("makeXmlStep")
     Step makeXmlStep(JobRepository jobRepository, PlatformTransactionManager platformTransactionManager) {
         return new StepBuilder("makeXmlStep", jobRepository)
@@ -85,11 +100,24 @@ public class TemperatureSensorRootConfig extends DefaultBatchConfiguration {
     }
 
     @Bean
+    @Qualifier("dataAnomalyStep")
+    Step dataAnomalyStep(JobRepository jobRepository, PlatformTransactionManager platformTransactionManager) {
+        return new StepBuilder("dataAnomalyStep", jobRepository)
+                .<SensorData, DataAnomaly>chunk(1, platformTransactionManager)
+                .reader(sensorDataReader())
+                .processor(new SensorDataAnomalyProcessor())
+                .writer(dataAnomalyWriter())
+                .build();
+    }
+
+    @Bean
     @Qualifier("sensorDataJob")
     Job sensorDataJob(JobRepository jobRepository,
-                      @Qualifier("makeXmlStep") Step makeXmlStep) {
+                      @Qualifier("makeXmlStep") Step makeXmlStep,
+                      @Qualifier("dataAnomalyStep") Step dataAnomalyStep) {
         return new JobBuilder("sensorDataJob", jobRepository)
                 .start(makeXmlStep)
+                .next(dataAnomalyStep)
                 .build();
     }
 }
