@@ -176,3 +176,202 @@ public class TodoController {
 ## Conclusion
 Spring Data JDBC provides a simple and efficient way to work with relational databases without the complexity of an ORM. It is a great choice for applications that require direct JDBC interaction while leveraging Spring's repository abstraction.
 
+# DataSource Class in Java
+
+## Introduction
+The `DataSource` interface in Java is a part of the `javax.sql` package and provides a standard way to connect to relational databases. It is an alternative to the traditional `DriverManager` for managing database connections in Java applications.
+
+## Why Use DataSource?
+Using `DataSource` is preferred over `DriverManager` because:
+- **Connection Pooling**: It supports connection pooling, improving performance.
+- **Managed Transactions**: Works well with JTA (Java Transaction API) for better transaction management.
+- **Easier Configuration**: Can be configured externally (e.g., via Spring Boot or application servers).
+- **Security**: Allows better control over credentials and connection properties.
+
+## Implementations of DataSource
+Several implementations of `DataSource` exist, including:
+- **Basic DataSource**: Provided by Apache Commons DBCP (`BasicDataSource`).
+- **HikariCP**: A high-performance connection pool (`HikariDataSource`).
+- **Tomcat JDBC Pool**: A lightweight alternative (`org.apache.tomcat.jdbc.pool.DataSource`).
+- **C3P0**: Another widely used connection pooling library.
+
+## Key Methods in DataSource
+The `DataSource` interface provides three main methods:
+```java
+public interface DataSource {
+    Connection getConnection() throws SQLException;
+    Connection getConnection(String username, String password) throws SQLException;
+    PrintWriter getLogWriter() throws SQLException;
+    void setLogWriter(PrintWriter out) throws SQLException;
+    void setLoginTimeout(int seconds) throws SQLException;
+    int getLoginTimeout() throws SQLException;
+    Logger getParentLogger() throws SQLFeatureNotSupportedException;
+}
+```
+
+## Configuring DataSource in Spring Boot
+### Maven Dependencies
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+<dependency>
+    <groupId>com.zaxxer</groupId>
+    <artifactId>HikariCP</artifactId>
+</dependency>
+```
+
+### Application Properties
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/mydb
+spring.datasource.username=root
+spring.datasource.password=password
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.hikari.maximum-pool-size=10
+```
+
+### Java Configuration
+```java
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import javax.sql.DataSource;
+import com.zaxxer.hikari.HikariDataSource;
+
+@Configuration
+public class DataSourceConfig {
+    @Bean
+    public DataSource dataSource() {
+        HikariDataSource dataSource = new HikariDataSource();
+        dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/mydb");
+        dataSource.setUsername("root");
+        dataSource.setPassword("password");
+        dataSource.setMaximumPoolSize(10);
+        return dataSource;
+    }
+}
+```
+
+## Using DataSource in a Repository
+```java
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+import javax.sql.DataSource;
+
+@Repository
+public class UserRepository {
+    private final JdbcTemplate jdbcTemplate;
+
+    public UserRepository(DataSource dataSource) {
+        this.jdbcTemplate = new JdbcTemplate(dataSource);
+    }
+
+    public int countUsers() {
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Integer.class);
+    }
+}
+```
+
+## Conclusion
+The `DataSource` interface is a powerful and flexible way to manage database connections in Java applications. It enhances performance, security, and scalability by supporting connection pooling and transaction management. Spring Boot makes configuring and using `DataSource` easy with minimal boilerplate code.
+
+# DataSource Class in Java
+
+## Introduction
+The `DataSource` interface in Java is a part of the `javax.sql` package and provides a standard way to connect to relational databases. It is an alternative to the traditional `DriverManager` for managing database connections in Java applications.
+
+## Why Use DataSource?
+Using `DataSource` is preferred over `DriverManager` because:
+- **Connection Pooling**: It supports connection pooling, improving performance.
+- **Managed Transactions**: Works well with JTA (Java Transaction API) for better transaction management.
+- **Easier Configuration**: Can be configured externally (e.g., via Spring Boot or application servers).
+- **Security**: Allows better control over credentials and connection properties.
+
+## Does Spring Data JDBC Provide DataSource?
+Yes, Spring Boot and Spring Data JDBC provide a `DataSource` by default. When using `spring-boot-starter-data-jdbc`, Spring Boot automatically configures a `DataSource` based on the properties defined in `application.properties` or `application.yml`. It typically defaults to **HikariCP**, a high-performance connection pool.
+
+## Implementations of DataSource
+Several implementations of `DataSource` exist, including:
+- **HikariCP (Default in Spring Boot)**: A high-performance connection pool (`HikariDataSource`).
+- **Basic DataSource**: Provided by Apache Commons DBCP (`BasicDataSource`).
+- **Tomcat JDBC Pool**: A lightweight alternative (`org.apache.tomcat.jdbc.pool.DataSource`).
+- **C3P0**: Another widely used connection pooling library.
+
+## Key Methods in DataSource
+The `DataSource` interface provides three main methods:
+```java
+public interface DataSource {
+    Connection getConnection() throws SQLException;
+    Connection getConnection(String username, String password) throws SQLException;
+    PrintWriter getLogWriter() throws SQLException;
+    void setLogWriter(PrintWriter out) throws SQLException;
+    void setLoginTimeout(int seconds) throws SQLException;
+    int getLoginTimeout() throws SQLException;
+    Logger getParentLogger() throws SQLFeatureNotSupportedException;
+}
+```
+
+## Configuring DataSource in Spring Boot
+### Dependencies (Maven)
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jdbc</artifactId>
+</dependency>
+```
+
+### Application Properties
+Spring Boot auto-configures the `DataSource` when these properties are set:
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/mydb
+spring.datasource.username=root
+spring.datasource.password=password
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.hikari.maximum-pool-size=10
+```
+
+### Java Configuration (Optional)
+If you want to explicitly define a `DataSource`, you can do it like this:
+```java
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import javax.sql.DataSource;
+import com.zaxxer.hikari.HikariDataSource;
+
+@Configuration
+public class DataSourceConfig {
+    @Bean
+    public DataSource dataSource() {
+        HikariDataSource dataSource = new HikariDataSource();
+        dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/mydb");
+        dataSource.setUsername("root");
+        dataSource.setPassword("password");
+        dataSource.setMaximumPoolSize(10);
+        return dataSource;
+    }
+}
+```
+
+## Using DataSource in a Repository
+```java
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+import javax.sql.DataSource;
+
+@Repository
+public class UserRepository {
+    private final JdbcTemplate jdbcTemplate;
+
+    public UserRepository(DataSource dataSource) {
+        this.jdbcTemplate = new JdbcTemplate(dataSource);
+    }
+
+    public int countUsers() {
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Integer.class);
+    }
+}
+```
+
+## Conclusion
+The `DataSource` interface is a powerful and flexible way to manage database connections in Java applications. Spring Boot, through `spring-boot-starter-data-jdbc`, provides a `DataSource` automatically using HikariCP. This makes it easy to work with databases without additional configuration unless customization is needed.
+
