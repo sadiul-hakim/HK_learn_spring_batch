@@ -76,6 +76,7 @@ public class TemperatureSensorRootConfig extends DefaultBatchConfiguration {
         return new FlatFileItemWriterBuilder<DataAnomaly>()
                 .name("dataAnomalyWriter")
                 .resource(rawDailyOutputInCsv)
+//                .lineAggregator(item -> item.getDate() + "," + item.getType().name() + "," + item.getValue())
                 .delimited()
                 .delimiter(",")
 //                .fieldExtractor(item -> new Object[]{item.getDate(), item.getType(), item.getValue()})
