@@ -208,6 +208,8 @@ Spring Data JDBC provides a simple and efficient way to work with relational dat
 It is a great choice for applications that require direct JDBC interaction while leveraging Spring's repository
 abstraction.
 
+---
+
 # 2. DataSource Class in Java
 
 ## Introduction
@@ -334,137 +336,7 @@ The `DataSource` interface is a powerful and flexible way to manage database con
 enhances performance, security, and scalability by supporting connection pooling and transaction management. Spring Boot
 makes configuring and using `DataSource` easy with minimal boilerplate code.
 
-# DataSource Class in Java
-
-## Introduction
-
-The `DataSource` interface in Java is a part of the `javax.sql` package and provides a standard way to connect to
-relational databases. It is an alternative to the traditional `DriverManager` for managing database connections in Java
-applications.
-
-## Why Use DataSource?
-
-Using `DataSource` is preferred over `DriverManager` because:
-
-- **Connection Pooling**: It supports connection pooling, improving performance.
-- **Managed Transactions**: Works well with JTA (Java Transaction API) for better transaction management.
-- **Easier Configuration**: Can be configured externally (e.g., via Spring Boot or application servers).
-- **Security**: Allows better control over credentials and connection properties.
-
-## Does Spring Data JDBC Provide DataSource?
-
-Yes, Spring Boot and Spring Data JDBC provide a `DataSource` by default. When using `spring-boot-starter-data-jdbc`,
-Spring Boot automatically configures a `DataSource` based on the properties defined in `application.properties` or
-`application.yml`. It typically defaults to **HikariCP**, a high-performance connection pool.
-
-## Implementations of DataSource
-
-Several implementations of `DataSource` exist, including:
-
-- **HikariCP (Default in Spring Boot)**: A high-performance connection pool (`HikariDataSource`).
-- **Basic DataSource**: Provided by Apache Commons DBCP (`BasicDataSource`).
-- **Tomcat JDBC Pool**: A lightweight alternative (`org.apache.tomcat.jdbc.pool.DataSource`).
-- **C3P0**: Another widely used connection pooling library.
-
-## Key Methods in DataSource
-
-The `DataSource` interface provides three main methods:
-
-```java
-public interface DataSource {
-    Connection getConnection() throws SQLException;
-
-    Connection getConnection(String username, String password) throws SQLException;
-
-    PrintWriter getLogWriter() throws SQLException;
-
-    void setLogWriter(PrintWriter out) throws SQLException;
-
-    void setLoginTimeout(int seconds) throws SQLException;
-
-    int getLoginTimeout() throws SQLException;
-
-    Logger getParentLogger() throws SQLFeatureNotSupportedException;
-}
-```
-
-## Configuring DataSource in Spring Boot
-
-### Dependencies (Maven)
-
-```xml
-
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-jdbc</artifactId>
-</dependency>
-```
-
-### Application Properties
-
-Spring Boot auto-configures the `DataSource` when these properties are set:
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/mydb
-spring.datasource.username=root
-spring.datasource.password=password
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-spring.datasource.hikari.maximum-pool-size=10
-```
-
-### Java Configuration (Optional)
-
-If you want to explicitly define a `DataSource`, you can do it like this:
-
-```java
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import javax.sql.DataSource;
-
-import com.zaxxer.hikari.HikariDataSource;
-
-@Configuration
-public class DataSourceConfig {
-    @Bean
-    public DataSource dataSource() {
-        HikariDataSource dataSource = new HikariDataSource();
-        dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/mydb");
-        dataSource.setUsername("root");
-        dataSource.setPassword("password");
-        dataSource.setMaximumPoolSize(10);
-        return dataSource;
-    }
-}
-```
-
-## Using DataSource in a Repository
-
-```java
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Repository;
-
-import javax.sql.DataSource;
-
-@Repository
-public class UserRepository {
-    private final JdbcTemplate jdbcTemplate;
-
-    public UserRepository(DataSource dataSource) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-    }
-
-    public int countUsers() {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Integer.class);
-    }
-}
-```
-
-## Conclusion
-
-The `DataSource` interface is a powerful and flexible way to manage database connections in Java applications. Spring
-Boot, through `spring-boot-starter-data-jdbc`, provides a `DataSource` automatically using HikariCP. This makes it easy
-to work with databases without additional configuration unless customization is needed.
+---
 
 # 3. Spring Batch Overview
 
@@ -664,3 +536,119 @@ Processed: Batch
 
 Spring Batch is a powerful framework for handling batch processing tasks efficiently. By defining **Jobs, Steps,
 ItemReaders, Processors, and Writers**, you can create scalable and robust data processing pipelines. 🚀
+
+---
+
+# 4. Spring Data JDBC and Its Relationship with Spring Batch
+
+## Introduction
+
+Spring Data JDBC is a lightweight, opinionated framework for interacting with relational databases using plain JDBC
+while leveraging Spring’s conventions. It provides a simplified alternative to Spring Data JPA by focusing on direct SQL
+execution without an ORM like Hibernate.
+
+Spring Batch is a framework designed for batch processing, enabling high-volume data operations such as ETL (Extract,
+Transform, Load), data migration, and scheduled job execution.
+
+Spring Data JDBC and Spring Batch can work together to manage batch processing efficiently, leveraging direct database
+access without the overhead of an ORM.
+
+## Key Features of Spring Data JDBC
+
+- **Simpler than JPA**: Avoids complexity by eliminating lazy loading and dirty checking.
+- **Direct SQL Execution**: Uses repositories and SQL queries to interact with the database.
+- **Lightweight Data Mapping**: Maps entities to database rows with minimal overhead.
+- **Better Performance for Bulk Operations**: Since it directly interacts with JDBC, it provides better performance in
+  batch processing scenarios.
+
+## How Spring Data JDBC Integrates with Spring Batch
+
+Spring Batch requires efficient database interactions, and Spring Data JDBC can be used in various components of batch
+processing:
+
+### 1. **Item Reader with Spring Data JDBC**
+
+Spring Batch uses `ItemReader` to read data in chunks. Spring Data JDBC repositories can serve as a simple way to fetch
+data.
+
+#### Example: Using `JdbcCursorItemReader` with Spring Data JDBC
+
+```java
+
+@Bean
+public JdbcCursorItemReader<MyEntity> itemReader(DataSource dataSource) {
+    return new JdbcCursorItemReaderBuilder<MyEntity>()
+            .name("jdbcCursorItemReader")
+            .dataSource(dataSource)
+            .sql("SELECT * FROM my_table")
+            .rowMapper(new BeanPropertyRowMapper<>(MyEntity.class))
+            .build();
+}
+```
+
+### 2. **Item Writer with Spring Data JDBC**
+
+Spring Batch writes processed data using `ItemWriter`. Spring Data JDBC repositories can be injected to persist data
+efficiently.
+
+#### Example: Using `JdbcBatchItemWriter`
+
+```java
+
+@Bean
+public JdbcBatchItemWriter<MyEntity> itemWriter(DataSource dataSource) {
+    return new JdbcBatchItemWriterBuilder<MyEntity>()
+            .dataSource(dataSource)
+            .sql("INSERT INTO processed_table (id, name) VALUES (:id, :name)")
+            .beanMapped()
+            .build();
+}
+```
+
+### 3. **Transaction Management**
+
+Spring Data JDBC supports declarative transactions using `@Transactional`, which helps ensure consistency in batch jobs.
+Spring Batch also provides transactional behavior for each step.
+
+### 4. **Job Repository with Spring Data JDBC**
+
+Spring Batch requires a `JobRepository` to store metadata about batch jobs. Spring Boot auto-configures this using a
+database, and Spring Data JDBC can be leveraged to manage batch-related data.
+
+## Example: Batch Processing with Spring Data JDBC
+
+```java
+
+@Configuration
+@EnableBatchProcessing
+public class BatchConfig {
+
+    @Bean
+    public Step step(StepBuilderFactory stepBuilderFactory, ItemReader<MyEntity> reader,
+                     ItemProcessor<MyEntity, MyEntity> processor, ItemWriter<MyEntity> writer) {
+        return stepBuilderFactory.get("step")
+                .<MyEntity, MyEntity>chunk(10)
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
+                .build();
+    }
+
+    @Bean
+    public Job job(JobBuilderFactory jobBuilderFactory, Step step) {
+        return jobBuilderFactory.get("job")
+                .incrementer(new RunIdIncrementer())
+                .flow(step)
+                .end()
+                .build();
+    }
+}
+```
+
+## Conclusion
+
+Spring Data JDBC simplifies database interactions and integrates well with Spring Batch for high-performance batch
+processing. By leveraging direct SQL execution, efficient item readers/writers, and transaction management, Spring Data
+JDBC provides an optimized approach for batch job execution without the complexity of an ORM.
+
+
