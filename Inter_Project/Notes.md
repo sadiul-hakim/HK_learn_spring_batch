@@ -1,0 +1,1 @@
+***Reader Reads item one by one, Processor processes item one by one but writer writes chunk of item.***
