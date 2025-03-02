@@ -19,7 +19,16 @@ persisted and controlled by Spring Batch.***
 ***For Job ExecutionContext, ExecutionContext is persisted in database after each step is completed. For Step
 ExecutionContext,
 ExecutionContext is persisted after each chuck is commited(Item Writer writes each chuck). ExecutionContext is persisted
-no matter if there is a exception. ExecutionContext is re-stored for the same JobInstance.***
+no matter if there is a exception. ExecutionContext is reused for the same JobInstance.***
 
 # Restarting a Job
 
+***Every job has a exitStatus***
+
+***Successfully Completed Jobs are not restartable. e.g: Suppose a job has some job parameters and last time it was
+finished
+successfully, if we try to restart the job with same parameters (meaning same job instance would be used) batch would
+throw
+exception.
+`But in case of empty parameters it is different. With enpty parameters successfully completed jobs can be 
+restarted.`***
