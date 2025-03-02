@@ -46,7 +46,9 @@ restarted.`***
 ***Successfully completed steps are skipped, but they do not throw exception. But the behaviour can be changed by
 `.allowStartIfComplete()` on StepBuilder. When a step is restarted(in case of allowStartIfComplete() or execution
 failure),
-we can set the limit how many times the step should be restarted/executed set using `startLimit(int)` on StepBuilder.***
+we can set the limit how many times the step should be restarted/executed set using `startLimit(int)` on StepBuilder.
+If the limit is exceeded it would throw exception.***
+
 ***By default, in case of failure, Step starts from the same point where it was failed. But if the execution is needed
 to
 be started from the beginning we can set `.saveState(false)` on ItemReader.***
