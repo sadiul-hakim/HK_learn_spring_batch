@@ -11,6 +11,8 @@ When we try to run job with same parameters same JobInstance is reused.***
 
 ***JobExecution & StepExecution is created newly whenever a job is executed. They are not reused.***
 
+***JobExecution & StepExecution have Execution Context.***
+
 # ExecutionContext
 
 ***Spring Batch has Job Scoped and Step Scoped ExecutionContext. They are like Collection of key/value pairs that are
@@ -32,3 +34,17 @@ throw
 exception.
 `But in case of empty parameters it is different. With enpty parameters successfully completed jobs can be 
 restarted.`***
+
+***You can use .preventRestart() on JobBuilder class to prevent jobs from restarting.***
+
+---
+
+***Now job is restarted***
+
+# Restarting a Step
+
+***Successfully completed steps are skipped, but they do not throw exception. But the behaviour can be changed by
+.allowStartIfComplete() on StepBuilder.***
+***By default, in case of failure, Step starts from the same point where it was failed. But if the execution is needed
+to
+be started from the beginning we can set `.saveState(false)` on ItemReader.***
