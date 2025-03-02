@@ -52,3 +52,10 @@ If the limit is exceeded it would throw exception.***
 ***By default, in case of failure, Step starts from the same point where it was failed. But if the execution is needed
 to
 be started from the beginning we can set `.saveState(false)` on ItemReader.***
+
+# Life Cycle
+
+***Spring Batch gives us functionality to do something before/after job execution or before/after step execution.
+We can use `JobExecutionListener,StepExecutionListener and .listener()` on JobBuilder/StepBuilder to do these kind of
+things.
+Also, There are Annotations like `@BeforeJob/@BeforeStep And @AfterJob/@AfterStep`***
