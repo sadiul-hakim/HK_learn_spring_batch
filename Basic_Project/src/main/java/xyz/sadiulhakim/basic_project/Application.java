@@ -24,7 +24,8 @@ public class Application implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         try {
-            jobLauncher.run(sensorDataJob, new org.springframework.batch.core.JobParameters());
+            jobLauncher.run(sensorDataJob, new org.springframework.batch.core.JobParameters()); // Jobs with empty parameters
+            // can be restarted.
         } catch (Exception e) {
             e.printStackTrace();
         }
