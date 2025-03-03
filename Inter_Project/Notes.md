@@ -12,6 +12,7 @@
 
 ***There are some cases when database can be updated while running batch. In that case we can miss any column or
 reprocess any column.***
+
 1. `Stateless Database Reading & JdbcCursorItemReader` (In this we need to add additional column called `processed`.When
    any column is changed processed column is set to false.)
     1. processed column
@@ -20,7 +21,14 @@ reprocess any column.***
 2. `Driving Query & JdbcPagingItemReader`
 
 # ItemWriter
+
 1. JdbcBatchItemWriter
-   1. itemPreparedStatement
-   2. sql
+    1. itemPreparedStatement
+    2. sql
 2. JpaItemWriter
+
+# Conditional Flow
+
+***We can control Jobs Step execution flow conditionally. There is .on() on .start() and .from() of JobBuilder.***
+***.on() matches the exitStatus we return after Step Execution. We can return custom exitStatus from .afterStep() of
+StepExecutionListener.***
