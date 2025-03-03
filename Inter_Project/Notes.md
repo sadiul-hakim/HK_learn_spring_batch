@@ -36,3 +36,6 @@ reprocess any column.***
 ***We can control Jobs Step execution flow conditionally. There is .on() on .start() and .from() of JobBuilder.***
 ***.on() matches the exitStatus we return after Step Execution. We can return custom exitStatus from .afterStep() of
 StepExecutionListener.***
+
+***Along with StepExecutionListener we also have SkipListener, ChunkListener, ItemReadListener, ItemProcessListener,
+ItemWriteListener that we can use in .listener() on StepBuilder.***
