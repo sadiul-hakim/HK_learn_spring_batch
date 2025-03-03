@@ -26,6 +26,10 @@ reprocess any column.***
     1. itemPreparedStatement
     2. sql
 2. JpaItemWriter
+3. JsonFileItemWriter
+    1. Json Marshaller (Using JacksonJsonObjectMarshaller might cause some problem. Add latest jackson-databind
+       dependency.)
+    2. resource
 
 # Conditional Flow
 
