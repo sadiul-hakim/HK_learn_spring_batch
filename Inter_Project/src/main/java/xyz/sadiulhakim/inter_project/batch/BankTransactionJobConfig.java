@@ -68,4 +68,6 @@ public class BankTransactionJobConfig extends DefaultBatchConfiguration {
                 .writer(null)
                 .build();
     }
+
+
 }
