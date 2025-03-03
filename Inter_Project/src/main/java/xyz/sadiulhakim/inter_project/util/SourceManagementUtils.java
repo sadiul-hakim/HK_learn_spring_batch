@@ -77,7 +77,7 @@ public class SourceManagementUtils {
     public static void insertBankTransaction(BankTransaction transaction, JdbcTemplate jdbcTemplate) {
         jdbcTemplate.update("insert into bank_transaction_yearly (month, day, hour, minute, amount, merchant) " +
                         "values (?, ?, ?, ?, ?, ?)",
-                transaction.getMonth(), transaction.getDay(), transaction.getHour(),
-                transaction.getMinute(), transaction.getAmount(), transaction.getMerchant());
+                transaction.month(), transaction.day(), transaction.hour(),
+                transaction.minute(), transaction.amount(), transaction.merchant());
     }
 }

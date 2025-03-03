@@ -55,24 +55,24 @@ public class GenerateSourceDatabase {
 
         // Sort random records chronologically
         recordsToInsert.sort((t1, t2) -> {
-            if (t1.getMonth() < t2.getMonth()) {
+            if (t1.month() < t2.month()) {
                 return -1;
-            } else if (t1.getMonth() > t2.getMonth()) {
+            } else if (t1.month() > t2.month()) {
                 return 1;
-            } else if (t1.getDay() < t2.getDay()) {
+            } else if (t1.day() < t2.day()) {
                 return -1;
-            } else if (t1.getDay() > t2.getDay()) {
+            } else if (t1.day() > t2.day()) {
                 return 1;
-            } else if (t1.getHour() < t2.getHour()) {
+            } else if (t1.hour() < t2.hour()) {
                 return -1;
-            } else if (t1.getHour() > t2.getHour()) {
+            } else if (t1.hour() > t2.hour()) {
                 return 1;
-            } else if (t1.getMinute() < t2.getMinute()) {
+            } else if (t1.minute() < t2.minute()) {
                 return -1;
-            } else if (t1.getMinute() > t2.getMinute()) {
+            } else if (t1.minute() > t2.minute()) {
                 return 1;
             } else {
-                return t1.getAmount().compareTo(t2.getAmount());
+                return t1.amount().compareTo(t2.amount());
             }
         });
 
