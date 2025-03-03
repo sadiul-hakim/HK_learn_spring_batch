@@ -12,12 +12,12 @@
 
 ***There are some cases when database can be updated while running batch. In that case we can miss any column or
 reprocess any column.***
-1. Stateless Database Reading & JdbcCursorItemReader (In this we need to add additional column called `processed`.When
+1. `Stateless Database Reading & JdbcCursorItemReader` (In this we need to add additional column called `processed`.When
    any column is changed processed column is set to false.)
     1. processed column
     2. saveState(false)
     3. allowStartIdComplete(true) on JobBuilder
-2. Driving Query & JdbcPagingItemReader
+2. `Driving Query & JdbcPagingItemReader`
 
 # ItemWriter
 1. JdbcBatchItemWriter
