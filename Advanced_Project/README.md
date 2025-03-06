@@ -56,17 +56,47 @@ Or for clearance,
 allows it to continue reading sequentially from where it left off.`
 
 ## Handling Line Separation
+
 - Teams in the input files are **separated by empty lines**.
 - `FlatFileItemReader` reads each team and keeps track of where it stopped.
 - When encountering an **empty line**, `read()` should:
-   1. Detect the empty line.
-   2. Create a new `Team` object.
-   3. Return the `Team`, allowing `FlatFileItemReader` to continue reading.
+    1. Detect the empty line.
+    2. Create a new `Team` object.
+    3. Return the `Team`, allowing `FlatFileItemReader` to continue reading.
 
 ## Behavior of `FlatFileItemReader`
+
 ✅ **Does `FlatFileItemReader` remember where it stopped?**
+
 - Yes, it keeps track of the last read position and resumes from the next unread line.
 
 ✅ **Does `FlatFileItemReader` hold the file resource until it’s finished?**
+
 - Yes, it keeps the file open and reads sequentially until EOF.
 - Once done, it releases the resource and moves to the next file assigned by `MultiResourceItemReader`.
+
+`Most Readers by default save its state in ExecutionContext.`
+
+### What is `ItemStream`?
+- `ItemStream` is an interface in Spring Batch that provides lifecycle management for components that need to store and retrieve execution state.
+- It is primarily used in readers, writers, and processors that need to maintain information across step executions.
+
+### Key Methods in `ItemStream`
+1. **`open(ExecutionContext executionContext)`**
+    - Called at the beginning of a step.
+    - Used to initialize resources and restore previous execution state.
+
+2. **`update(ExecutionContext executionContext)`**
+    - Called periodically during step execution.
+    - Saves current state (e.g., last read item index) to allow restartability.
+
+3. **`close()`**
+    - Called at the end of a step.
+    - Used to release resources (files, connections, etc.).
+
+### How `ItemStream` Works in Our Case
+- `FlatFileItemReader` implements `ItemStream`, so it:
+    - Saves the last read line position using `update()`.
+    - Can restart from the last position if the job is restarted.
+    - Releases file resources using `close()` after processing.
+- `MultiFileTeamReader` also implements `ItemStream`, ensuring proper file handling across multiple files.
