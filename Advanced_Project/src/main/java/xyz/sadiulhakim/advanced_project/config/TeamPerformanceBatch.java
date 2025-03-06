@@ -52,7 +52,7 @@ public class TeamPerformanceBatch {
     ItemReader<Team> teamReader() {
 
         // Takes a file from FlatFileItemReader reads sequentially.
-        // It keeps the current resource open until reading is done and it also remembers where it left off.
+        // It keeps the current resource open until reading is done, and it also remembers where it left off.
         FlatFileItemReader<String> lineReader = new FlatFileItemReaderBuilder<String>()
                 .name("lineReader")
                 .lineMapper((line, lineNumber) -> line) // Return the same line so that we can process in ResourceAwareItemReaderItemStream
