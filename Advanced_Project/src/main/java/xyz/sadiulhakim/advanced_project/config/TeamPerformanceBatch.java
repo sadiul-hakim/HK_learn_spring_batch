@@ -23,8 +23,8 @@ import xyz.sadiulhakim.advanced_project.pojo.Team;
 @EnableBatchProcessing
 public class TeamPerformanceBatch {
 
-    @Value("file:d:\\Hakim_Code\\learn_batch\\staticFiles\\advanced\\input\\")
-    private Resource inputFolderPath;
+    @Value("file:d:\\Hakim_Code\\learn_batch\\staticFiles\\advanced\\input\\*.txt")
+    private Resource[] inputFolderPath;
 
     @Value("file:d:\\Hakim_Code\\learn_batch\\staticFiles\\advanced\\output\\avg.txt")
     private WritableResource avgOutputFile;
@@ -45,6 +45,12 @@ public class TeamPerformanceBatch {
         jobLauncher.setJobRepository(jobRepository);
         jobLauncher.setTaskExecutor(simpleAsyncTaskExecutor);
         return jobLauncher;
+    }
+
+    @Bean
+    @Qualifier("teamAverageProcessor")
+    TeamAverageProcessor teamAverageProcessor(@Value("#{jobParameters['scoreIndex']}") int scoreIndex) {
+        return new TeamAverageProcessor(scoreIndex);
     }
 
     @Bean

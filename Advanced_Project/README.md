@@ -78,10 +78,13 @@ allows it to continue reading sequentially from where it left off.`
 `Most Readers by default save its state in ExecutionContext.`
 
 ### What is `ItemStream`?
-- `ItemStream` is an interface in Spring Batch that provides lifecycle management for components that need to store and retrieve execution state.
+
+- `ItemStream` is an interface in Spring Batch that provides lifecycle management for components that need to store and
+  retrieve execution state.
 - It is primarily used in readers, writers, and processors that need to maintain information across step executions.
 
 ### Key Methods in `ItemStream`
+
 1. **`open(ExecutionContext executionContext)`**
     - Called at the beginning of a step.
     - Used to initialize resources and restore previous execution state.
@@ -95,8 +98,11 @@ allows it to continue reading sequentially from where it left off.`
     - Used to release resources (files, connections, etc.).
 
 ### How `ItemStream` Works in Our Case
+
 - `FlatFileItemReader` implements `ItemStream`, so it:
     - Saves the last read line position using `update()`.
     - Can restart from the last position if the job is restarted.
     - Releases file resources using `close()` after processing.
 - `MultiFileTeamReader` also implements `ItemStream`, ensuring proper file handling across multiple files.
+
+`we can access JobParameters like this : @Value("#{jobParameters['scoreIndex']}")`
