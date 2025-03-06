@@ -1,10 +1,15 @@
 package xyz.sadiulhakim.advanced_project.config;
 
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
@@ -17,6 +22,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.WritableResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.transaction.PlatformTransactionManager;
 import xyz.sadiulhakim.advanced_project.pojo.Team;
 
 @Configuration
@@ -75,6 +81,31 @@ public class TeamPerformanceBatch {
                 .name("teamReader")
                 .resources(inputFolderPath)
                 .delegate(reader)
+                .build();
+    }
+
+    @Bean
+    @Qualifier("teamAverageStep")
+    Step teamAverageStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
+                         @Qualifier("teamReader") ItemReader<Team> teamReader,
+                         @Qualifier("teamAverageProcessor") TeamAverageProcessor teamAverageProcessor) {
+        return new StepBuilder("teamAverageStep", jobRepository)
+                .<Team, AverageScore>chunk(5, transactionManager)
+                .reader(teamReader)
+                .processor(teamAverageProcessor)
+                .writer(null)
+                .listener(new StepExecutionListener() {
+                    @Override
+                    public void beforeStep(StepExecution stepExecution) {
+                        teamAverageProcessor.setStepExecution(stepExecution);
+                    }
+
+                    @Override
+                    public ExitStatus afterStep(StepExecution stepExecution) {
+                        teamAverageProcessor.setStepExecution(null);
+                        return StepExecutionListener.super.afterStep(stepExecution);
+                    }
+                })
                 .build();
     }
 }

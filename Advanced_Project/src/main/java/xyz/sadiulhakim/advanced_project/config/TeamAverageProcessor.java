@@ -54,7 +54,7 @@ public class TeamAverageProcessor implements ItemProcessor<Team, AverageScore> {
         return new AverageScore(team.name(), (sum / count));
     }
 
-    public StepExecution getStepExecution() {
-        return stepExecution;
+    public void setStepExecution(StepExecution stepExecution) {
+        this.stepExecution = stepExecution;
     }
 }
