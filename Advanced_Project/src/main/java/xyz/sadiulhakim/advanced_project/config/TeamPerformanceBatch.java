@@ -1,6 +1,7 @@
 package xyz.sadiulhakim.advanced_project.config;
 
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
@@ -48,6 +49,7 @@ public class TeamPerformanceBatch {
     }
 
     @Bean
+    @StepScope
     @Qualifier("teamAverageProcessor")
     TeamAverageProcessor teamAverageProcessor(@Value("#{jobParameters['scoreIndex']}") int scoreIndex) {
         return new TeamAverageProcessor(scoreIndex);

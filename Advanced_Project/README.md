@@ -105,4 +105,7 @@ allows it to continue reading sequentially from where it left off.`
     - Releases file resources using `close()` after processing.
 - `MultiFileTeamReader` also implements `ItemStream`, ensuring proper file handling across multiple files.
 
-`we can access JobParameters like this : @Value("#{jobParameters['scoreIndex']}")`
+`we can access JobParameters like this : @Value("#{jobParameters['scoreIndex']}"). When we access JobParameters like this 
+we need to annotate the method with @StepScope. @StepScope annotated @Bean only lives in scope of one step. But the whole 
+Step can not be defined as @StepScope only beans used in a Step can be @StepScope. Beacause, In order to create a @Bean
+@StepScope we need an active StepExecution.`
