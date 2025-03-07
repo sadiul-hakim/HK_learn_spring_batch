@@ -7,10 +7,15 @@ TaskExecutorJobLauncher
 that is capable of running jobs asynchronously. we can set .setVirtualThread() to true to ask SimpleAsyncTaskExecutor to
 use Virtual Thread.***
 
-# Tasklet(Step)
+# Tasklet
 
 All Steps do not need a Reader, Processor and Writer. Using Tasklet we can write plain logics without
 them(R,P,W).
+
+This is a FunctionalInterface, it has .execute() that returns RepeatStatus. RepeatStatus has two values CONTINUABLE and
+FINISHED. If CONTINUABLE is returned the .execute() method is called again and again until FINISHED is returned.
+
+Tasklet itself is not a Step it needs to be passed in a Step to be run.
 
 # ResourceAwareItemReaderItemStream & FlatFileItemReader & MultiResourceItemReaderBuilder
 
@@ -138,3 +143,7 @@ ExecutionContextPromotionListener to promote those keys to Job ExecutionContext 
 # Executing Steps in parallel
 
 ***To execute steps in parallel we need to make Flow of Steps and pass TaskExecutor.***
+
+# CommandRunner & JvmCommandRunner
+
+JvmCommandRunner is provided by Spring Batch to execute some system command for Batch Applications.

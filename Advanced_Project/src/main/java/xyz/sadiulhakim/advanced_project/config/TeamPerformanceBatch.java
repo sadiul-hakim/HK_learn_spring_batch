@@ -11,6 +11,9 @@ import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.listener.ExecutionContextPromotionListener;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.core.step.tasklet.CommandRunner;
+import org.springframework.batch.core.step.tasklet.JvmCommandRunner;
+import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
@@ -19,6 +22,7 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.batch.item.file.builder.MultiResourceItemReaderBuilder;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -51,6 +55,9 @@ public class TeamPerformanceBatch {
 
     @Value("file:d:\\Hakim_Code\\learn_batch\\staticFiles\\advanced\\output\\max.txt")
     private WritableResource maxOutputFile;
+
+    @Value("file:D:\\Hakim_Code\\learn_batch\\staticFiles\\advanced\\output")
+    private WritableResource resultedPath;
 
     @Bean
     @Qualifier("asyncJobLauncher")
@@ -278,12 +285,37 @@ public class TeamPerformanceBatch {
                 .build();
     }
 
+    //+----------------------------------+------------------------------+
+
+    @Bean
+    @StepScope
+    @Qualifier("fileCreatorTasklet")
+    Tasklet fileCreatorTasklet(@Value("#{jobParameters['id']}") String id) {
+        return (contribution, chunkContext) -> {
+            CommandRunner commandRunner = new JvmCommandRunner();
+            String fileName = id + ".resulted";
+            commandRunner.exec(new String[]{"cmd.exe", "/c", "type", "nul", ">", fileName}, new String[]{},
+                    resultedPath.getFile());
+            return RepeatStatus.FINISHED;
+        };
+    }
+
+    @Bean
+    @Qualifier("fileCreatorStep")
+    Step fileCreatorStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
+                         @Qualifier("fileCreatorTasklet") Tasklet fileCreatorTasklet) {
+        return new StepBuilder("fileCreatorStep", jobRepository)
+                .tasklet(fileCreatorTasklet, transactionManager)
+                .build();
+    }
+
     @Bean
     @Qualifier("averageScoreCalculatorJob")
     Job averageScoreCalculatorJob(JobRepository jobRepository,
                                   @Qualifier("teamAverageStep") Step teamAverageStep,
                                   @Qualifier("teamMaxPerformanceStep") Step teamMaxPerformanceStep,
-                                  @Qualifier("teamMinPerformanceStep") Step teamMinPerformanceStep
+                                  @Qualifier("teamMinPerformanceStep") Step teamMinPerformanceStep,
+                                  @Qualifier("fileCreatorStep") Step fileCreatorStep
     ) {
 
         SimpleFlow teamAverageFlow = new FlowBuilder<SimpleFlow>("teamAverageFlow")
@@ -311,6 +343,7 @@ public class TeamPerformanceBatch {
         return new JobBuilder("averageScoreCalculatorJob", jobRepository)
                 .start(teamAverageFlow)
                 .next(performanceFlow)
+                .next(fileCreatorStep)
                 .build()
                 .build();
     }
