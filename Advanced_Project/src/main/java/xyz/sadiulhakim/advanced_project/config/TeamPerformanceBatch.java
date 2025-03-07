@@ -150,8 +150,8 @@ public class TeamPerformanceBatch {
 
     //+---------------------------------------------+--------------------------------------------+
 
-    @Bean
-    @Qualifier("averageScoreReader")
+    // Do not make this a @Bean. Because we would use this in two steps, and they would be run in parallel there might be
+    // Threading issue.
     ItemReader<AverageScore> averageScoreReader() {
         return new FlatFileItemReaderBuilder<AverageScore>()
                 .name("averageScoreReader")
