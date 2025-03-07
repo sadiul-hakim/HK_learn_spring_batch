@@ -35,9 +35,11 @@ import org.springframework.transaction.PlatformTransactionManager;
 import xyz.sadiulhakim.advanced_project.pojo.Team;
 import xyz.sadiulhakim.advanced_project.pojo.TeamPerformance;
 
+import java.io.File;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.Files;
 
 @Configuration
 @EnableScheduling
@@ -310,12 +312,40 @@ public class TeamPerformanceBatch {
     }
 
     @Bean
+    @StepScope
+    @Qualifier("successLoggerTasklet")
+    Tasklet successLoggerTasklet(@Value("#{jobParameters['id']}") String id) {
+        return (contribution, chunkContext) -> {
+            File file = resultedPath.getFile();
+            File logFile = new File(file, (id + ".resulted"));
+            if (!logFile.exists()) {
+                System.out.printf("Log file {%s} does not exists!\n", logFile.getAbsolutePath());
+                return RepeatStatus.FINISHED;
+            }
+
+            String msg = "Job with id " + id + " is finished.";
+            Files.writeString(logFile.toPath(), msg);
+            return RepeatStatus.FINISHED;
+        };
+    }
+
+    @Bean
+    @Qualifier("successLoggerStep")
+    Step successLoggerStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
+                           @Qualifier("successLoggerTasklet") Tasklet successLoggerTasklet) {
+        return new StepBuilder("successLoggerStep", jobRepository)
+                .tasklet(successLoggerTasklet, transactionManager)
+                .build();
+    }
+
+    @Bean
     @Qualifier("averageScoreCalculatorJob")
     Job averageScoreCalculatorJob(JobRepository jobRepository,
                                   @Qualifier("teamAverageStep") Step teamAverageStep,
                                   @Qualifier("teamMaxPerformanceStep") Step teamMaxPerformanceStep,
                                   @Qualifier("teamMinPerformanceStep") Step teamMinPerformanceStep,
-                                  @Qualifier("fileCreatorStep") Step fileCreatorStep
+                                  @Qualifier("fileCreatorStep") Step fileCreatorStep,
+                                  @Qualifier("successLoggerStep") Step successLoggerStep
     ) {
 
         SimpleFlow teamAverageFlow = new FlowBuilder<SimpleFlow>("teamAverageFlow")
@@ -344,6 +374,7 @@ public class TeamPerformanceBatch {
                 .start(teamAverageFlow)
                 .next(performanceFlow)
                 .next(fileCreatorStep)
+                .next(successLoggerStep)
                 .build()
                 .build();
     }
