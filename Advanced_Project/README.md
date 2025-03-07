@@ -5,8 +5,7 @@
 ***JobLauncher is used to launch Job programmatically. SimpleAsyncTaskExecutor is used while building a
 TaskExecutorJobLauncher
 that is capable of running jobs asynchronously. we can set .setVirtualThread() to true to ask SimpleAsyncTaskExecutor to
-***
-use Virtual Thread.
+use Virtual Thread.***
 
 # Tasklet(Step)
 
@@ -111,11 +110,12 @@ allows it to continue reading sequentially from where it left off.`
 
 # Accessing JobParameters
 
-***we can access JobParameters like this : `@Value("#{jobParameters['scoreIndex']}")`. When we access JobParameters like
+***we can access JobParameters like this : `@Value("#{jobParameters['scoreIndex']}")`. When we access
+JobParameters,jobExecutionContext like
 this
-we need to annotate the method with `@StepScope`. @StepScope annotated @Bean only lives in scope of one step. But the
+we need to annotate the method with `@StepScope`. @StepScope annotated @Bean only lives in scope of a step. But the
 whole
-Step can not be defined as @StepScope only beans used in a Step can be @StepScope. Beacause, In order to create a @Bean
+Step can not be defined as @StepScope only beans used in a Step can be @StepScope. Because, In order to create a @Bean
 @StepScope we need an active StepExecution.***
 
 # Sharing Data from one step to others
@@ -127,4 +127,14 @@ another way `ExecutionContextPromotionListener`. We need to pass an Array of int
 ExecutionContextPromotionListener to promote those keys to Job ExecutionContext from Step ExecutionContext.***
 
 # Accessing shared ExecutionContext Data
+
 ***We can use @Value("#jobExecutionContext['max.score']") to access Job ExecutionContext. ***
+
+# Appending Some Text at the Top/Bottom of Output File
+
+***`FlatFileHeaderCallback` is used to append some text at the top of output file before writer writes anything.***
+***`FlatFileFooterCallback` does the opposite.***
+
+# Executing Steps in parallel
+
+***To execute steps in parallel we need to make Flow of Steps and pass TaskExecutor.***

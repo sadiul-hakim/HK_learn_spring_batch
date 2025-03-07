@@ -3,7 +3,9 @@ package xyz.sadiulhakim.advanced_project.config;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.job.builder.FlowBuilder;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.job.flow.support.SimpleFlow;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.listener.ExecutionContextPromotionListener;
@@ -12,6 +14,7 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.file.FlatFileHeaderCallback;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
@@ -28,6 +31,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import xyz.sadiulhakim.advanced_project.pojo.Team;
 import xyz.sadiulhakim.advanced_project.pojo.TeamPerformance;
 
+import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -187,9 +191,40 @@ public class TeamPerformanceBatch {
     }
 
     @Bean
+    @StepScope
+    @Qualifier("maxHeaderWriter")
+    FlatFileHeaderCallback maxHeaderWriter(
+            @Value("#{jobExecutionContext['max.score']}") double maxScore,
+            @Value("#{jobExecutionContext['max.player']}") String maxPlayer
+    ) {
+        return reader -> writeHeader(reader, maxPlayer, maxScore);
+    }
+
+    @Bean
+    @StepScope
+    @Qualifier("minHeaderWriter")
+    FlatFileHeaderCallback minHeaderWriter(
+            @Value("#{jobExecutionContext['min.score']}") double minScore,
+            @Value("#{jobExecutionContext['min.player']}") String minPlayer
+    ) {
+        return reader -> writeHeader(reader, minPlayer, minScore);
+    }
+
+    private void writeHeader(Writer writer, String name, double score) {
+        try {
+            writer.write("+-------------------------------------+--------------------------------+\n");
+            writer.write("Team performance below is calculated against " + score + " which was scored by " + name + "\n");
+            writer.write("+-------------------------------------+--------------------------------+\n");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Bean
     @Qualifier("teamMaxPerformanceStep")
     Step teamMaxPerformanceStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
-                                @Qualifier("maxRatioPerformanceProcessor") ItemProcessor<AverageScore, TeamPerformance> maxRatioPerformanceProcessor) {
+                                @Qualifier("maxRatioPerformanceProcessor") ItemProcessor<AverageScore, TeamPerformance> maxRatioPerformanceProcessor,
+                                @Qualifier("maxHeaderWriter") FlatFileHeaderCallback maxHeaderWriter) {
         return new StepBuilder("teamMaxPerformanceStep", jobRepository)
                 .<AverageScore, TeamPerformance>chunk(5, transactionManager)
                 .reader(averageScoreReader())
@@ -200,6 +235,15 @@ public class TeamPerformanceBatch {
                         .delimited()
                         .delimiter(",")
                         .fieldExtractor(item -> new Object[]{item.name(), item.performance()})
+                        .headerCallback(maxHeaderWriter)
+                        .footerCallback(writer -> {
+                            try {
+                                writer.write("\n");
+                                writer.write("Processed By Hakim!\n");
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
                         .build()
                 )
                 .build();
@@ -208,7 +252,8 @@ public class TeamPerformanceBatch {
     @Bean
     @Qualifier("teamMinPerformanceStep")
     Step teamMinPerformanceStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
-                                @Qualifier("minRatioPerformanceProcessor") ItemProcessor<AverageScore, TeamPerformance> minRatioPerformanceProcessor) {
+                                @Qualifier("minRatioPerformanceProcessor") ItemProcessor<AverageScore, TeamPerformance> minRatioPerformanceProcessor,
+                                @Qualifier("minHeaderWriter") FlatFileHeaderCallback minHeaderWriter) {
         return new StepBuilder("teamMinPerformanceStep", jobRepository)
                 .<AverageScore, TeamPerformance>chunk(5, transactionManager)
                 .reader(averageScoreReader())
@@ -219,6 +264,15 @@ public class TeamPerformanceBatch {
                         .delimited()
                         .delimiter(",")
                         .fieldExtractor(item -> new Object[]{item.name(), item.performance()})
+                        .headerCallback(minHeaderWriter)
+                        .footerCallback(writer -> {
+                            try {
+                                writer.write("\n");
+                                writer.write("Processed By Hakim!\n");
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
                         .build()
                 )
                 .build();
@@ -227,9 +281,37 @@ public class TeamPerformanceBatch {
     @Bean
     @Qualifier("averageScoreCalculatorJob")
     Job averageScoreCalculatorJob(JobRepository jobRepository,
-                                  @Qualifier("teamAverageStep") Step teamAverageStep) {
-        return new JobBuilder("averageScoreCalculatorJob", jobRepository)
+                                  @Qualifier("teamAverageStep") Step teamAverageStep,
+                                  @Qualifier("teamMaxPerformanceStep") Step teamMaxPerformanceStep,
+                                  @Qualifier("teamMinPerformanceStep") Step teamMinPerformanceStep
+    ) {
+
+        SimpleFlow teamAverageFlow = new FlowBuilder<SimpleFlow>("teamAverageFlow")
                 .start(teamAverageStep)
+                .build();
+
+        SimpleFlow teamMaxPerformanceFlow = new FlowBuilder<SimpleFlow>("teamMaxPerformanceFlow")
+                .start(teamMaxPerformanceStep)
+                .build();
+
+        SimpleFlow teamMinPerformanceFlow = new FlowBuilder<SimpleFlow>("teamMinPerformanceFlow")
+                .start(teamMinPerformanceStep)
+                .build();
+
+        SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
+        taskExecutor.setVirtualThreads(true);
+
+        // How split parallel running flows and pass TaskExecutor
+        SimpleFlow performanceFlow = new FlowBuilder<SimpleFlow>("performanceFlow")
+                .split(taskExecutor)
+                .add(teamMaxPerformanceFlow, teamMinPerformanceFlow) // Running two steps in parallel
+                .build();
+
+
+        return new JobBuilder("averageScoreCalculatorJob", jobRepository)
+                .start(teamAverageFlow)
+                .next(performanceFlow)
+                .build()
                 .build();
     }
 }
