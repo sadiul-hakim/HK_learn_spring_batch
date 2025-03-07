@@ -400,3 +400,75 @@ public Step myStep(StepBuilderFactory stepBuilderFactory, ItemReader<String> rea
 
 This allows building **resilient batch jobs** where transient failures are retried, and non-critical failures are
 skipped, improving the robustness of data processing in Spring Batch. 🚀
+
+---
+
+## **Listeners for Skip and Retry in Spring Batch**
+
+Spring Batch provides listeners to track skipped and retried items, allowing custom handling and logging.
+
+### **Skip Listener**
+
+`SkipListener` helps in tracking skipped items by providing callback methods.
+
+#### **Example:**
+
+```java
+
+@Component
+public class CustomSkipListener implements SkipListener<String, String> {
+    @Override
+    public void onSkipInRead(Throwable t) {
+        System.out.println("Item skipped during read: " + t.getMessage());
+    }
+
+    @Override
+    public void onSkipInWrite(String item, Throwable t) {
+        System.out.println("Item skipped during write: " + item + " due to " + t.getMessage());
+    }
+
+    @Override
+    public void onSkipInProcess(String item, Throwable t) {
+        System.out.println("Item skipped during processing: " + item + " due to " + t.getMessage());
+    }
+}
+```
+
+And then use this listener in .listener() of StepBuilder
+
+---
+
+### **Retry Listener**
+
+`RetryListener` allows tracking retries and handling custom logic.
+
+#### **Example:**
+
+```java
+
+@Component
+public class CustomRetryListener implements RetryListener {
+    @Override
+    public <T, E extends Throwable> boolean open(RetryContext context, RetryCallback<T, E> callback) {
+        System.out.println("Retry started");
+        return true;
+    }
+
+    @Override
+    public <T, E extends Throwable> void close(RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
+        System.out.println("Retry finished");
+    }
+
+    @Override
+    public <T, E extends Throwable> void onError(RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
+        System.out.println("Retry attempt failed: " + throwable.getMessage());
+    }
+}
+```
+
+And then use this listener in .listener() of StepBuilder
+
+---
+
+This allows building **resilient batch jobs** where transient failures are retried, and non-critical failures are
+skipped, improving the robustness of data processing in Spring Batch. 🚀

@@ -161,6 +161,23 @@ public class TeamPerformanceBatch {
                 .faultTolerant()
                 .skip(IndexOutOfBoundsException.class)
                 .skipLimit(40)
+                .listener(new SkipListener<>() {
+                    @Override
+                    public void onSkipInRead(Throwable t) {
+                        System.out.println("Item skipped while reading, Exception : " + t.getMessage());
+                    }
+
+                    @Override
+                    public void onSkipInWrite(AverageScore item, Throwable t) {
+                        System.out.printf("Item %s skipped while writing, Exception : %s", item.name(), t.getMessage());
+                    }
+
+                    @Override
+                    public void onSkipInProcess(Team item, Throwable t) {
+                        System.out.printf("Item %s skipped while processing, Exception : %s", item.name(), t.getMessage());
+
+                    }
+                })
                 .build();
     }
 
