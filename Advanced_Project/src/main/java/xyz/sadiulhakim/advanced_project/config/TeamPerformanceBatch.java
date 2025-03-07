@@ -158,6 +158,9 @@ public class TeamPerformanceBatch {
                 })
                 .listener(promotionListener)
                 .allowStartIfComplete(true)
+                .faultTolerant()
+                .skip(IndexOutOfBoundsException.class)
+                .skipLimit(40)
                 .build();
     }
 

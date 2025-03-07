@@ -152,54 +152,67 @@ JvmCommandRunner is provided by Spring Batch to execute some system command for 
 
 ### Restarting Jobs:
 
-- **Job Restarting**: A job can be restarted when it fails or when the parameters are changed. In cases where parameters are the same, Spring Batch won’t re-run the job, but if the parameters change, the job is treated as a new instance.
-- **Completed Jobs**: Jobs that are marked as successfully completed generally cannot be restarted unless certain conditions are met (e.g., a failure on the previous attempt, or the parameters have changed).
+- **Job Restarting**: A job can be restarted when it fails or when the parameters are changed. In cases where parameters
+  are the same, Spring Batch won’t re-run the job, but if the parameters change, the job is treated as a new instance.
+- **Completed Jobs**: Jobs that are marked as successfully completed generally cannot be restarted unless certain
+  conditions are met (e.g., a failure on the previous attempt, or the parameters have changed).
 - **Failed Jobs**: Jobs that fail can be restarted, either with the same or new parameters.
 
 ### Empty Parameters or Changed Parameters:
 
 - If you pass **empty parameters**, Spring Batch treats it as a **new job instance**.
-- Similarly, if the **parameters are changed** (i.e., different values are passed), the job is treated as a **new instance**, and it will execute the steps from scratch.
+- Similarly, if the **parameters are changed** (i.e., different values are passed), the job is treated as a **new
+  instance**, and it will execute the steps from scratch.
 
 ### AllowStartIfComplete:
 
 - This setting in the `StepBuilder` allows a job to start even if a previous step has completed successfully.
 - Normally, a job step won’t restart if it has already completed successfully.
-- If `AllowStartIfComplete` is set to `true`, the step can be executed again, even if it was marked as completed in the previous execution.
+- If `AllowStartIfComplete` is set to `true`, the step can be executed again, even if it was marked as completed in the
+  previous execution.
 
 ---
 
 ## **1. When does `allowStartIfComplete(true)` come into play?**
-`allowStartIfComplete(true)` is useful when you want a step to **run again**, even if it was **already completed successfully in a previous execution**.
+
+`allowStartIfComplete(true)` is useful when you want a step to **run again**, even if it was **already completed
+successfully in a previous execution**.
 
 ### **Scenarios where it applies:**
+
 1. **Restarting a failed job**
     - If a job failed at step **2**, step **1** is **not re-executed** (because it was successful).
-    - But if `allowStartIfComplete(true)` is **not set**, even when restarting the job manually, step **1** will be skipped because it's already marked as `COMPLETED`.
+    - But if `allowStartIfComplete(true)` is **not set**, even when restarting the job manually, step **1** will be
+      skipped because it's already marked as `COMPLETED`.
     - If you **want step 1 to rerun**, you must set `allowStartIfComplete(true)`.
 
 2. **Forcing a step to always run on job restart**
-    - If you always want a step to execute (e.g., refreshing a cache, clearing a directory, etc.), use `allowStartIfComplete(true)`, so Spring Batch doesn’t skip it.
+    - If you always want a step to execute (e.g., refreshing a cache, clearing a directory, etc.), use
+      `allowStartIfComplete(true)`, so Spring Batch doesn’t skip it.
 
 ---
 
 ## **2. When a job is restarted in case of failure, what happens to steps?**
+
 - Spring Batch tracks **step execution history** based on job execution ID.
 - If the job **failed previously**, only the **failed steps are executed** when you restart it.
 - Successful steps are **skipped** unless `allowStartIfComplete(true)` is set.
 
 #### **Example: Job Execution Behavior**
-| Job Run | Step 1 | Step 2 | Step 3 | Job Status |
-|---------|--------|--------|--------|------------|
-| Run 1   | ✅ Completed | ❌ Failed | ❌ Not Executed | **FAILED** |
-| Restart | 🚫 Skipped | ✅ Runs Again | ✅ Runs | **COMPLETED** |
+
+| Job Run | Step 1      | Step 2       | Step 3         | Job Status    |
+|---------|-------------|--------------|----------------|---------------|
+| Run 1   | ✅ Completed | ❌ Failed     | ❌ Not Executed | **FAILED**    |
+| Restart | 🚫 Skipped  | ✅ Runs Again | ✅ Runs         | **COMPLETED** |
 
 - Here, **Step 1 was skipped** because it was already completed, while **Step 2 and Step 3 were executed**.
-- If `allowStartIfComplete(true)` was set for Step 1, **it would have run again**, even though it was completed in Run 1.
+- If `allowStartIfComplete(true)` was set for Step 1, **it would have run again**, even though it was completed in Run
+    1.
 
 ---
 
 ## **3. Does a new Job Instance create new Step Instances?**
+
 Yes! **If you run a job with new parameters, Spring Batch treats it as a completely new job instance**, and that means:
 
 - A **new job execution is created**.
@@ -208,46 +221,182 @@ Yes! **If you run a job with new parameters, Spring Batch treats it as a complet
 - **Step execution history is separate** for each job instance.
 
 #### **Example: Running the job with different parameters**
-| Job Run | Job Parameters | Step 1 | Step 2 | Step 3 | Job Status |
-|---------|---------------|--------|--------|--------|------------|
-| Run 1   | `param=20240301` | ✅ Completed | ✅ Completed | ✅ Completed | **COMPLETED** |
+
+| Job Run | Job Parameters   | Step 1       | Step 2       | Step 3       | Job Status    |
+|---------|------------------|--------------|--------------|--------------|---------------|
+| Run 1   | `param=20240301` | ✅ Completed  | ✅ Completed  | ✅ Completed  | **COMPLETED** |
 | Run 2   | `param=20240302` | ✅ Runs Again | ✅ Runs Again | ✅ Runs Again | **COMPLETED** |
 
 - Because we passed a **new parameter (`20240302`)**, **a new job instance was created**.
 - Even though Step 1 was successful in the previous job, **it will execute again because this is a new job instance**.
-- `allowStartIfComplete(true)` is **not needed** here, because the job instance is completely new, so no steps are skipped.
+- `allowStartIfComplete(true)` is **not needed** here, because the job instance is completely new, so no steps are
+  skipped.
 
 ---
 
 ## **4. Do I need `allowStartIfComplete(true)` for a new job instance?**
-**No, you don’t need it** when a new job instance is created (i.e., with different parameters) because **Spring Batch automatically runs all steps again**.
+
+**No, you don’t need it** when a new job instance is created (i.e., with different parameters) because **Spring Batch
+automatically runs all steps again**.
 
 ### **When do you actually need `allowStartIfComplete(true)`?**
+
 - When you **restart a failed job**, and you want a successful step to run again.
 - When you have a **step that should always run**, even if previously completed (e.g., cleanup steps, data refresh).
 
 ---
 
 ## **5. When do steps get skipped?**
-- **Failed job restart** → Steps that were successful before are **skipped**, unless `allowStartIfComplete(true)` is set.
+
+- **Failed job restart** → Steps that were successful before are **skipped**, unless `allowStartIfComplete(true)` is
+  set.
 - **New job instance** (new parameters) → Steps **never get skipped**, since it's a fresh execution.
 
 ---
 
 ### **Final Answer: When should you use `allowStartIfComplete(true)`?**
+
 ✅ **Use it when:**
+
 - Restarting a job after failure, and you want completed steps to run again.
 - You have steps that should always execute on any restart.
 
 ❌ **Don’t use it when:**
+
 - Running a job with new parameters (new job instance).
 - You only want failed steps to run when restarting a job.
 
 ---
 
 ### **TL;DR Summary**
-| Scenario | Does Step Run Again? | Need `allowStartIfComplete(true)`? |
-|----------|----------------------|------------------------------------|
-| **Restarting failed job** | ❌ No (unless failed) | ✅ Yes, if you want completed steps to rerun |
-| **Running job with new parameters** | ✅ Yes | ❌ No, because it’s a new job instance |
-| **Restarting job with same parameters** | ❌ No | ✅ Yes, if step should always execute |
+
+| Scenario                                | Does Step Run Again? | Need `allowStartIfComplete(true)`?          |
+|-----------------------------------------|----------------------|---------------------------------------------|
+| **Restarting failed job**               | ❌ No (unless failed) | ✅ Yes, if you want completed steps to rerun |
+| **Running job with new parameters**     | ✅ Yes                | ❌ No, because it’s a new job instance       |
+| **Restarting job with same parameters** | ❌ No                 | ✅ Yes, if step should always execute        |
+
+# Skips And ReTries
+
+## **1. Skip in Spring Batch**
+
+The **skip** mechanism allows the batch step to ignore specific exceptions during processing instead of failing the
+entire job.
+
+### **How it Works**
+
+- When an exception occurs while processing an item, instead of failing, the framework skips the item and moves to the
+  next one.
+- The number of allowed skips can be controlled using `skipLimit(n)`, where `n` is the maximum number of items that can
+  be skipped before failing the step.
+- Specific exception types can be skipped using `skip(Class<? extends Throwable> exception)`.
+
+### **Example**
+
+```java
+
+@Bean
+public Step myStep(StepBuilderFactory stepBuilderFactory, ItemReader<String> reader,
+                   ItemProcessor<String, String> processor, ItemWriter<String> writer) {
+    return stepBuilderFactory.get("myStep")
+            .<String, String>chunk(5)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .faultTolerant()
+            .skip(CustomException.class)  // Skip specific exceptions
+            .skipLimit(3)                 // Maximum number of skips allowed
+            .build();
+}
+```
+
+### **Behavior**
+
+- If a `CustomException` occurs while reading, processing, or writing an item, that item will be skipped.
+- If more than **3** items are skipped, the step will fail.
+
+---
+
+## **2. Retry in Spring Batch**
+
+The **retry** mechanism attempts to reprocess a failed item before considering it as a failure.
+
+### **How it Works**
+
+- If an exception occurs, the step retries processing the item a specified number of times before failing.
+- The number of retry attempts can be controlled using `retryLimit(n)`.
+- Specific exception types can be retried using `retry(Class<? extends Throwable> exception)`.
+
+### **Example**
+
+```java
+
+@Bean
+public Step myStep(StepBuilderFactory stepBuilderFactory, ItemReader<String> reader,
+                   ItemProcessor<String, String> processor, ItemWriter<String> writer) {
+    return stepBuilderFactory.get("myStep")
+            .<String, String>chunk(5)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .faultTolerant()
+            .retry(CustomException.class)  // Retry specific exceptions
+            .retryLimit(3)                 // Maximum retry attempts
+            .build();
+}
+```
+
+### **Behavior**
+
+- If a `CustomException` occurs during item processing, Spring Batch will retry the operation up to **3 times** before
+  failing the step.
+- If the exception persists after 3 retries, the step will fail.
+
+---
+
+## **Difference Between Skip and Retry**
+
+| Feature       | Skip                                                              | Retry                                               |
+|---------------|-------------------------------------------------------------------|-----------------------------------------------------|
+| **Purpose**   | Ignore faulty items                                               | Retry processing faulty items                       |
+| **Mechanism** | Moves to the next item on failure                                 | Retries the same item on failure                    |
+| **Usage**     | When some records can be skipped without affecting business logic | When transient failures can be resolved by retrying |
+| **Control**   | `skipLimit(n)`                                                    | `retryLimit(n)`                                     |
+
+---
+
+## **Using Skip and Retry Together**
+
+Both **skip** and **retry** can be used together to create a fault-tolerant batch step.
+
+### **Example**
+
+```java
+
+@Bean
+public Step myStep(StepBuilderFactory stepBuilderFactory, ItemReader<String> reader,
+                   ItemProcessor<String, String> processor, ItemWriter<String> writer) {
+    return stepBuilderFactory.get("myStep")
+            .<String, String>chunk(5)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .faultTolerant()
+            .retry(CustomException.class)
+            .retryLimit(3)
+            .skip(AnotherException.class)
+            .skipLimit(2)
+            .build();
+}
+```
+
+### **Behavior**
+
+- If a `CustomException` occurs, the batch step will **retry up to 3 times** before failing the step.
+- If an `AnotherException` occurs, the batch will **skip the item** and move to the next, but only up to **2 skipped
+  items** before failing.
+
+---
+
+This allows building **resilient batch jobs** where transient failures are retried, and non-critical failures are
+skipped, improving the robustness of data processing in Spring Batch. 🚀
