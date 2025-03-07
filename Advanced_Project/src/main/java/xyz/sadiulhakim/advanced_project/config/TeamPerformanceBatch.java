@@ -160,6 +160,7 @@ public class TeamPerformanceBatch {
                 .allowStartIfComplete(true)
                 .faultTolerant()
                 .skip(IndexOutOfBoundsException.class)
+                .noSkip(NullPointerException.class)
                 .skipLimit(40)
                 .listener(new SkipListener<>() {
                     @Override
