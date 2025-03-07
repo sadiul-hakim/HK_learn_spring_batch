@@ -1,18 +1,19 @@
 package xyz.sadiulhakim.advanced_project.config;
 
-import org.springframework.batch.core.ExitStatus;
-import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.StepExecutionListener;
+import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
+import org.springframework.batch.core.listener.ExecutionContextPromotionListener;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.batch.item.file.builder.MultiResourceItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +31,7 @@ import xyz.sadiulhakim.advanced_project.pojo.Team;
 @EnableBatchProcessing
 public class TeamPerformanceBatch {
 
-    @Value("file:d:\\Hakim_Code\\learn_batch\\staticFiles\\advanced\\input\\*.txt")
+    @Value("classpath:input/*.txt")
     private Resource[] inputFolderPath;
 
     @Value("file:d:\\Hakim_Code\\learn_batch\\staticFiles\\advanced\\output\\avg.txt")
@@ -85,15 +86,45 @@ public class TeamPerformanceBatch {
     }
 
     @Bean
+    @Qualifier("teamAverageWriter")
+    ItemWriter<AverageScore> teamAverageWriter() {
+        return new FlatFileItemWriterBuilder<AverageScore>()
+                .name("teamAverageWriter")
+                .resource(avgOutputFile)
+                .delimited()
+                .delimiter(",")
+//                .names("name","averageScore")
+                .fieldExtractor(item -> new Object[]{item.name(), item.averageScore()})
+                .build();
+    }
+
+    @Bean
+    @Qualifier("playerInfoPromoter")
+    ExecutionContextPromotionListener playerInfoPromoter() {
+        ExecutionContextPromotionListener promotionListener = new ExecutionContextPromotionListener();
+
+        // Promote these keys/values to Job Execution Listener
+        promotionListener.setKeys(new String[]{
+                TeamAverageProcessor.MAX_PLAYER,
+                TeamAverageProcessor.MIN_PLAYER,
+                TeamAverageProcessor.MAX_SCORE,
+                TeamAverageProcessor.MIN_SCORE,
+        });
+        return promotionListener;
+    }
+
+    @Bean
     @Qualifier("teamAverageStep")
     Step teamAverageStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
                          @Qualifier("teamReader") ItemReader<Team> teamReader,
-                         @Qualifier("teamAverageProcessor") TeamAverageProcessor teamAverageProcessor) {
+                         @Qualifier("teamAverageProcessor") TeamAverageProcessor teamAverageProcessor,
+                         @Qualifier("teamAverageWriter") ItemWriter<AverageScore> teamAverageWriter,
+                         @Qualifier("playerInfoPromoter") ExecutionContextPromotionListener promotionListener) {
         return new StepBuilder("teamAverageStep", jobRepository)
                 .<Team, AverageScore>chunk(5, transactionManager)
                 .reader(teamReader)
                 .processor(teamAverageProcessor)
-                .writer(null)
+                .writer(teamAverageWriter)
                 .listener(new StepExecutionListener() {
                     @Override
                     public void beforeStep(StepExecution stepExecution) {
@@ -103,9 +134,21 @@ public class TeamPerformanceBatch {
                     @Override
                     public ExitStatus afterStep(StepExecution stepExecution) {
                         teamAverageProcessor.setStepExecution(null);
+                        System.out.println("Done teamAverageStep Step.");
                         return StepExecutionListener.super.afterStep(stepExecution);
                     }
                 })
+                .listener(promotionListener)
+                .allowStartIfComplete(true)
+                .build();
+    }
+
+    @Bean
+    @Qualifier("averageScoreCalculatorJob")
+    Job averageScoreCalculatorJob(JobRepository jobRepository,
+                                  @Qualifier("teamAverageStep") Step teamAverageStep) {
+        return new JobBuilder("averageScoreCalculatorJob", jobRepository)
+                .start(teamAverageStep)
                 .build();
     }
 }

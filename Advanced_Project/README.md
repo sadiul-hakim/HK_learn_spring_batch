@@ -2,7 +2,11 @@
 
 # JobLauncher & TaskExecutorJobLauncher & SimpleAsyncTaskExecutor
 
-***JobLauncher is used to launch Job programmatically.***
+***JobLauncher is used to launch Job programmatically. SimpleAsyncTaskExecutor is used while building a
+TaskExecutorJobLauncher
+that is capable of running jobs asynchronously. we can set .setVirtualThread() to true to ask SimpleAsyncTaskExecutor to
+***
+use Virtual Thread.
 
 # Tasklet(Step)
 
@@ -105,7 +109,15 @@ allows it to continue reading sequentially from where it left off.`
     - Releases file resources using `close()` after processing.
 - `MultiFileTeamReader` also implements `ItemStream`, ensuring proper file handling across multiple files.
 
-`we can access JobParameters like this : @Value("#{jobParameters['scoreIndex']}"). When we access JobParameters like this 
-we need to annotate the method with @StepScope. @StepScope annotated @Bean only lives in scope of one step. But the whole 
+***we can access JobParameters like this : `@Value("#{jobParameters['scoreIndex']}")`. When we access JobParameters like
+this
+we need to annotate the method with `@StepScope`. @StepScope annotated @Bean only lives in scope of one step. But the
+whole
 Step can not be defined as @StepScope only beans used in a Step can be @StepScope. Beacause, In order to create a @Bean
-@StepScope we need an active StepExecution.`
+@StepScope we need an active StepExecution.***
+
+***To share data across Steps we can transfer keys/values we are interested in to Job ExecutionContext at the end of
+Step
+Execution. We can use StepExecution.getJobExecution().getExecutionContext() to get ExecutionContext of Job. But we have
+another way `ExecutionContextPromotionListener`. We need to pass an Array of interested keys to .setKeys() of
+ExecutionContextPromotionListener to promote those keys to Job ExecutionContext from Step ExecutionContext.***

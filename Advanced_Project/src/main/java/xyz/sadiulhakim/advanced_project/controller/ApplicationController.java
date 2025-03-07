@@ -1,5 +1,6 @@
 package xyz.sadiulhakim.advanced_project.controller;
 
+import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.JobParametersInvalidException;
@@ -20,8 +21,12 @@ public class ApplicationController {
     @Qualifier("asyncJobLauncher")
     private final JobLauncher asyncJobLauncher;
 
-    public ApplicationController(JobLauncher asyncJobLauncher) {
+    @Qualifier("averageScoreCalculatorJob")
+    private final Job averageScoreCalculatorJob;
+
+    public ApplicationController(JobLauncher asyncJobLauncher, Job averageScoreCalculatorJob) {
         this.asyncJobLauncher = asyncJobLauncher;
+        this.averageScoreCalculatorJob = averageScoreCalculatorJob;
     }
 
     @PostMapping("/start")
@@ -32,7 +37,7 @@ public class ApplicationController {
                 .addLong("scoreIndex", scoreIndex)
                 .toJobParameters();
 
-        asyncJobLauncher.run(null, jobParameters);
+        asyncJobLauncher.run(averageScoreCalculatorJob, jobParameters);
         return "Job with id " + id + " was submitted";
     }
 }
