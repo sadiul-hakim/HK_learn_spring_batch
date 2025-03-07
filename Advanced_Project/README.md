@@ -133,7 +133,7 @@ ExecutionContextPromotionListener to promote those keys to Job ExecutionContext 
 
 # Accessing shared ExecutionContext Data
 
-***We can use @Value("#jobExecutionContext['max.score']") to access Job ExecutionContext. ***
+***We can use @Value("#jobExecutionContext['max.score']") to access Job ExecutionContext.***
 
 # Appending Some Text at the Top/Bottom of Output File
 
@@ -147,3 +147,107 @@ ExecutionContextPromotionListener to promote those keys to Job ExecutionContext 
 # CommandRunner & JvmCommandRunner
 
 JvmCommandRunner is provided by Spring Batch to execute some system command for Batch Applications.
+
+## Key Concepts in Spring Batch Jobs
+
+### Restarting Jobs:
+
+- **Job Restarting**: A job can be restarted when it fails or when the parameters are changed. In cases where parameters are the same, Spring Batch won’t re-run the job, but if the parameters change, the job is treated as a new instance.
+- **Completed Jobs**: Jobs that are marked as successfully completed generally cannot be restarted unless certain conditions are met (e.g., a failure on the previous attempt, or the parameters have changed).
+- **Failed Jobs**: Jobs that fail can be restarted, either with the same or new parameters.
+
+### Empty Parameters or Changed Parameters:
+
+- If you pass **empty parameters**, Spring Batch treats it as a **new job instance**.
+- Similarly, if the **parameters are changed** (i.e., different values are passed), the job is treated as a **new instance**, and it will execute the steps from scratch.
+
+### AllowStartIfComplete:
+
+- This setting in the `StepBuilder` allows a job to start even if a previous step has completed successfully.
+- Normally, a job step won’t restart if it has already completed successfully.
+- If `AllowStartIfComplete` is set to `true`, the step can be executed again, even if it was marked as completed in the previous execution.
+
+---
+
+## **1. When does `allowStartIfComplete(true)` come into play?**
+`allowStartIfComplete(true)` is useful when you want a step to **run again**, even if it was **already completed successfully in a previous execution**.
+
+### **Scenarios where it applies:**
+1. **Restarting a failed job**
+    - If a job failed at step **2**, step **1** is **not re-executed** (because it was successful).
+    - But if `allowStartIfComplete(true)` is **not set**, even when restarting the job manually, step **1** will be skipped because it's already marked as `COMPLETED`.
+    - If you **want step 1 to rerun**, you must set `allowStartIfComplete(true)`.
+
+2. **Forcing a step to always run on job restart**
+    - If you always want a step to execute (e.g., refreshing a cache, clearing a directory, etc.), use `allowStartIfComplete(true)`, so Spring Batch doesn’t skip it.
+
+---
+
+## **2. When a job is restarted in case of failure, what happens to steps?**
+- Spring Batch tracks **step execution history** based on job execution ID.
+- If the job **failed previously**, only the **failed steps are executed** when you restart it.
+- Successful steps are **skipped** unless `allowStartIfComplete(true)` is set.
+
+#### **Example: Job Execution Behavior**
+| Job Run | Step 1 | Step 2 | Step 3 | Job Status |
+|---------|--------|--------|--------|------------|
+| Run 1   | ✅ Completed | ❌ Failed | ❌ Not Executed | **FAILED** |
+| Restart | 🚫 Skipped | ✅ Runs Again | ✅ Runs | **COMPLETED** |
+
+- Here, **Step 1 was skipped** because it was already completed, while **Step 2 and Step 3 were executed**.
+- If `allowStartIfComplete(true)` was set for Step 1, **it would have run again**, even though it was completed in Run 1.
+
+---
+
+## **3. Does a new Job Instance create new Step Instances?**
+Yes! **If you run a job with new parameters, Spring Batch treats it as a completely new job instance**, and that means:
+
+- A **new job execution is created**.
+- **All steps will be executed from scratch** (since it's a different job instance).
+- Steps from the previous instance **do not affect the new one**.
+- **Step execution history is separate** for each job instance.
+
+#### **Example: Running the job with different parameters**
+| Job Run | Job Parameters | Step 1 | Step 2 | Step 3 | Job Status |
+|---------|---------------|--------|--------|--------|------------|
+| Run 1   | `param=20240301` | ✅ Completed | ✅ Completed | ✅ Completed | **COMPLETED** |
+| Run 2   | `param=20240302` | ✅ Runs Again | ✅ Runs Again | ✅ Runs Again | **COMPLETED** |
+
+- Because we passed a **new parameter (`20240302`)**, **a new job instance was created**.
+- Even though Step 1 was successful in the previous job, **it will execute again because this is a new job instance**.
+- `allowStartIfComplete(true)` is **not needed** here, because the job instance is completely new, so no steps are skipped.
+
+---
+
+## **4. Do I need `allowStartIfComplete(true)` for a new job instance?**
+**No, you don’t need it** when a new job instance is created (i.e., with different parameters) because **Spring Batch automatically runs all steps again**.
+
+### **When do you actually need `allowStartIfComplete(true)`?**
+- When you **restart a failed job**, and you want a successful step to run again.
+- When you have a **step that should always run**, even if previously completed (e.g., cleanup steps, data refresh).
+
+---
+
+## **5. When do steps get skipped?**
+- **Failed job restart** → Steps that were successful before are **skipped**, unless `allowStartIfComplete(true)` is set.
+- **New job instance** (new parameters) → Steps **never get skipped**, since it's a fresh execution.
+
+---
+
+### **Final Answer: When should you use `allowStartIfComplete(true)`?**
+✅ **Use it when:**
+- Restarting a job after failure, and you want completed steps to run again.
+- You have steps that should always execute on any restart.
+
+❌ **Don’t use it when:**
+- Running a job with new parameters (new job instance).
+- You only want failed steps to run when restarting a job.
+
+---
+
+### **TL;DR Summary**
+| Scenario | Does Step Run Again? | Need `allowStartIfComplete(true)`? |
+|----------|----------------------|------------------------------------|
+| **Restarting failed job** | ❌ No (unless failed) | ✅ Yes, if you want completed steps to rerun |
+| **Running job with new parameters** | ✅ Yes | ❌ No, because it’s a new job instance |
+| **Restarting job with same parameters** | ❌ No | ✅ Yes, if step should always execute |
