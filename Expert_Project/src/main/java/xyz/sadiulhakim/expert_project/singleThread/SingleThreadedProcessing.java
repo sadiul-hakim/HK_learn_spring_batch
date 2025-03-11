@@ -77,10 +77,10 @@ public class SingleThreadedProcessing {
                 int partitionCount = stepExecution.getExecutionContext().getInt(SessionActionPartitioner.PARTITION_COUNT, -1);
                 int partitionIndex = stepExecution.getExecutionContext().getInt(SessionActionPartitioner.PARTITION_INDEX, -1);
                 if (partitionIndex == -1 || partitionCount == -1) {
-                    LOGGER.info("Calculation step is about to start handling all session action records");
+                    LOGGER.warn("Calculation step is about to start handling all session action records");
                 } else {
                     String threadName = Thread.currentThread().getName();
-                    LOGGER.info("Calculation step is about to start handling partition " + partitionIndex
+                    LOGGER.warn("Calculation step is about to start handling partition " + partitionIndex
                             + " out of total " + partitionCount + " partitions in the thread -> " + threadName);
                 }
             }
