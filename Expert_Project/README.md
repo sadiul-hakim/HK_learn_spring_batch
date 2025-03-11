@@ -99,3 +99,71 @@ public void getJobDetails() {
 - Use `JobExplorer` when you need to **query job history and execution status** without modifying the data.
 - Both are crucial for building scalable and maintainable Spring Batch applications.
 
+# Partitioner Interface
+
+### Overview
+
+`Partitioner` is an interface in Spring Batch that enables parallel processing by splitting a dataset into multiple
+partitions. Each partition is then processed by an individual step execution, allowing better scalability and
+performance.
+
+### Responsibilities
+
+- Dividing a dataset into multiple partitions.
+- Assigning each partition to a worker step for parallel execution.
+- Ensuring load balancing among the worker steps.
+
+### Implementation Example
+
+Below is a simple implementation of the `Partitioner` interface:
+
+```java
+public class CustomPartitioner implements Partitioner {
+
+    @Override
+    public Map<String, ExecutionContext> partition(int gridSize) {
+        Map<String, ExecutionContext> partitions = new HashMap<>();
+        for (int i = 0; i < gridSize; i++) {
+            ExecutionContext context = new ExecutionContext();
+            context.putInt("partitionIndex", i);
+            partitions.put("partition" + i, context);
+        }
+        return partitions;
+    }
+}
+```
+
+### Configuration in a Step
+
+To use the partitioner, define a **partitioned step**:
+
+```java
+
+@Bean
+public Step partitionedStep(Step workerStep) {
+    return stepBuilderFactory.get("partitionedStep")
+            .partitioner("workerStep", new CustomPartitioner())
+            .step(workerStep)
+            .gridSize(4) // Number of partitions
+            .taskExecutor(new SimpleAsyncTaskExecutor())
+            .build();
+}
+```
+
+## Differences Between JobRepository, JobExplorer, and Partitioner
+
+| Feature              | JobRepository | JobExplorer | Partitioner |
+|----------------------|---------------|-------------|-------------|
+| Read-Write           | Yes           | No          | No          |
+| Tracks Job Execution | Yes           | Yes         | No          |
+| Manages Restarts     | Yes           | No          | No          |
+| Query Job History    | No            | Yes         | No          |
+| Parallel Processing  | No            | No          | Yes         |
+
+## Conclusion
+
+- Use `JobRepository` when you need to **persist and manage job executions**.
+- Use `JobExplorer` when you need to **query job history and execution status** without modifying the data.
+- Use `Partitioner` when you need to **split and distribute workload** across multiple processing units for parallel
+  execution.
+- All three components are essential for building scalable and maintainable Spring Batch applications.
