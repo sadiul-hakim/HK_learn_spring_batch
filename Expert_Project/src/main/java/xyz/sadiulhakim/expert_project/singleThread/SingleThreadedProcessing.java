@@ -5,16 +5,29 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.AbstractJob;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemStreamReader;
+import org.springframework.batch.item.ItemStreamWriter;
+import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
+import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
+import org.springframework.batch.item.support.builder.SynchronizedItemStreamReaderBuilder;
+import org.springframework.batch.item.support.builder.SynchronizedItemStreamWriterBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 import xyz.sadiulhakim.expert_project.pojo.SessionAction;
 import xyz.sadiulhakim.expert_project.pojo.SessionActionPartitioner;
@@ -24,6 +37,7 @@ import xyz.sadiulhakim.expert_project.source.SourceDatabaseUtils;
 import javax.sql.DataSource;
 
 @Configuration
+@EnableBatchProcessing
 public class SingleThreadedProcessing {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedProcessing.class);
@@ -34,6 +48,38 @@ public class SingleThreadedProcessing {
                                 @Qualifier("singleThreadUserScoreStep") Step singleThreadUserScoreStep) {
         return (AbstractJob) new JobBuilder("singleThreadJob", jobRepository)
                 .start(singleThreadUserScoreStep)
+                .build();
+    }
+
+    @Bean
+    @Qualifier("asyncJobLauncher")
+    JobLauncher asyncJobLauncher(JobRepository jobRepository) {
+        SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
+        taskExecutor.setVirtualThreads(true);
+
+        TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();
+        jobLauncher.setTaskExecutor(taskExecutor);
+        jobLauncher.setJobRepository(jobRepository);
+        return jobLauncher;
+    }
+
+    @Bean
+    @StepScope
+    @Qualifier("sessionActionReader")
+    ItemStreamReader<SessionAction> sessionActionItemReader(DataSource sourceDataSource,
+                                                            @Value("#{stepExecutionContext['partitionCount']}") Integer partitionCount,
+                                                            @Value("#{stepExecutionContext['partitionIndex']}") Integer partitionIndex) {
+        // Select all in case no partition properties passed; select partition-specific records otherwise
+        PagingQueryProvider queryProvider = (partitionCount == null || partitionIndex == null)
+                ? SourceDatabaseUtils.selectAllSessionActionsProvider(SessionAction.SESSION_ACTION_TABLE_NAME)
+                : SourceDatabaseUtils
+                .selectPartitionOfSessionActionsProvider(SessionAction.SESSION_ACTION_TABLE_NAME, partitionCount, partitionIndex);
+        return new JdbcPagingItemReaderBuilder<SessionAction>()
+                .name("sessionActionReader")
+                .dataSource(sourceDataSource)
+                .queryProvider(queryProvider)
+                .rowMapper(SourceDatabaseUtils.getSessionActionMapper())
+                .pageSize(5)
                 .build();
     }
 
@@ -53,7 +99,40 @@ public class SingleThreadedProcessing {
                         .build()
                 )
                 .listener(beforeStepLoggerListener())
-                .taskExecutor()
+                .build();
+    }
+
+    @Bean
+    @Qualifier("multiThreadUserScoreStep")
+    Step multiThreadUserScoreStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
+                                  @Qualifier("sessionActionReader") ItemStreamReader<SessionAction> sessionActionReader,
+                                  DataSource dataSource) {
+
+        ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
+        taskExecutor.setCorePoolSize(3);
+        taskExecutor.setThreadFactory(Thread.ofPlatform().factory());
+        taskExecutor.initialize();
+
+        return new StepBuilder("multiThreadUserScoreStep", jobRepository)
+                .<SessionAction, UserScoreUpdate>chunk(5, transactionManager)
+                .reader(
+                        new SynchronizedItemStreamReaderBuilder<SessionAction>()
+                                .delegate(sessionActionReader)
+                                .build()
+                )
+                .processor(getSessionActionProcessor())
+                .writer(new SynchronizedItemStreamWriterBuilder<UserScoreUpdate>()
+                        .delegate(
+                                (ItemStreamWriter<UserScoreUpdate>) new JdbcBatchItemWriterBuilder<UserScoreUpdate>()
+                                        .dataSource(dataSource)
+                                        .itemPreparedStatementSetter(SourceDatabaseUtils.UPDATE_USER_SCORE_PARAMETER_SETTER)
+                                        .sql(SourceDatabaseUtils.constructUpdateUserScoreQuery(UserScoreUpdate.USER_SCORE_TABLE_NAME))
+                                        .build()
+                        )
+                        .build()
+                )
+                .listener(beforeStepLoggerListener())
+                .taskExecutor(taskExecutor)
                 .build();
     }
 

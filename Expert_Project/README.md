@@ -104,7 +104,16 @@ public void getJobDetails() {
 We can run Step through multiple step using `.taskExecutor()` method on StepBuilder. But we have to consider few things
 like all threads might do the same thing. Suppose: we have 3 threads all of them started reading from 0th index. That is
 what we do not want. We want if thread 1 starts from 0 thread 2 should start from 50 and then thread 3 should start
-from 100. Somehow these threads should coordinate or they should know their task.
+from 100. Somehow these threads should coordinate, or they should know their task. To solve this problem we can
+synchronise and share same Reader and writer with multiple threads and send them some synchronisation data.
+
+To synchronise Reader we can use SynchronisedItemStreamReaderBuilder and delegate the ItemReader to it.
+interface ItemStreamReader<T> extends ItemStream, ItemReader<T> and almost all the Item Reads implements
+ItemStreamReader. So, we can return ItemReader or ItemStreamReader.
+
+***Running Steps though multiple threads comes with more issues like thread deadlock, we need to synchronise the writer.
+The output could be wrong and that has nothing to do with Spring Batch it is on CPU we don't know the execution
+order. We have better solution for this.***
 
 ---
 
