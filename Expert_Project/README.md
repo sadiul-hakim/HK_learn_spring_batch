@@ -99,6 +99,15 @@ public void getJobDetails() {
 - Use `JobExplorer` when you need to **query job history and execution status** without modifying the data.
 - Both are crucial for building scalable and maintainable Spring Batch applications.
 
+# Running Step through multiple thread
+
+We can run Step through multiple step using `.taskExecutor()` method on StepBuilder. But we have to consider few things
+like all threads might do the same thing. Suppose: we have 3 threads all of them started reading from 0th index. That is
+what we do not want. We want if thread 1 starts from 0 thread 2 should start from 50 and then thread 3 should start
+from 100. Somehow these threads should coordinate or they should know their task.
+
+---
+
 # Partitioner Interface
 
 ### Overview

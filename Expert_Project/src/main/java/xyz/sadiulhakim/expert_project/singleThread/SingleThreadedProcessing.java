@@ -53,6 +53,7 @@ public class SingleThreadedProcessing {
                         .build()
                 )
                 .listener(beforeStepLoggerListener())
+                .taskExecutor()
                 .build();
     }
 
