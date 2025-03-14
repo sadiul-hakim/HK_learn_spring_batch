@@ -1,4 +1,4 @@
-package xyz.sadiulhakim.expert_project.singleThread;
+package xyz.sadiulhakim.expert_project.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,10 +13,7 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemStreamReader;
-import org.springframework.batch.item.ItemStreamWriter;
+import org.springframework.batch.item.*;
 import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
@@ -38,9 +35,9 @@ import javax.sql.DataSource;
 
 @Configuration
 @EnableBatchProcessing
-public class SingleThreadedProcessing {
+public class UserScoreProcessor {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadedProcessing.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserScoreProcessor.class);
 
     @Bean
     @Qualifier("singleThreadJob")
@@ -83,6 +80,14 @@ public class SingleThreadedProcessing {
                 .build();
     }
 
+    ItemWriter<UserScoreUpdate> userScoreUpdateItemWriter(DataSource dataSource){
+        return new JdbcBatchItemWriterBuilder<UserScoreUpdate>()
+                .dataSource(dataSource)
+                .itemPreparedStatementSetter(SourceDatabaseUtils.UPDATE_USER_SCORE_PARAMETER_SETTER)
+                .sql(SourceDatabaseUtils.constructUpdateUserScoreQuery(UserScoreUpdate.USER_SCORE_TABLE_NAME))
+                .build();
+    }
+
     @Bean
     @Qualifier("singleThreadUserScoreStep")
     Step singleThreadUserScoreStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
@@ -92,12 +97,7 @@ public class SingleThreadedProcessing {
                 .<SessionAction, UserScoreUpdate>chunk(5, transactionManager)
                 .reader(sessionActionReader)
                 .processor(getSessionActionProcessor())
-                .writer(new JdbcBatchItemWriterBuilder<UserScoreUpdate>()
-                        .dataSource(dataSource)
-                        .itemPreparedStatementSetter(SourceDatabaseUtils.UPDATE_USER_SCORE_PARAMETER_SETTER)
-                        .sql(SourceDatabaseUtils.constructUpdateUserScoreQuery(UserScoreUpdate.USER_SCORE_TABLE_NAME))
-                        .build()
-                )
+                .writer(userScoreUpdateItemWriter(dataSource))
                 .listener(beforeStepLoggerListener())
                 .build();
     }
@@ -122,13 +122,7 @@ public class SingleThreadedProcessing {
                 )
                 .processor(getSessionActionProcessor())
                 .writer(new SynchronizedItemStreamWriterBuilder<UserScoreUpdate>()
-                        .delegate(
-                                (ItemStreamWriter<UserScoreUpdate>) new JdbcBatchItemWriterBuilder<UserScoreUpdate>()
-                                        .dataSource(dataSource)
-                                        .itemPreparedStatementSetter(SourceDatabaseUtils.UPDATE_USER_SCORE_PARAMETER_SETTER)
-                                        .sql(SourceDatabaseUtils.constructUpdateUserScoreQuery(UserScoreUpdate.USER_SCORE_TABLE_NAME))
-                                        .build()
-                        )
+                        .delegate()
                         .build()
                 )
                 .listener(beforeStepLoggerListener())
