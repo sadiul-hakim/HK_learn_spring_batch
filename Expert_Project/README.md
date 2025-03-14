@@ -99,7 +99,9 @@ public void getJobDetails() {
 - Use `JobExplorer` when you need to **query job history and execution status** without modifying the data.
 - Both are crucial for building scalable and maintainable Spring Batch applications.
 
-# Running Step through multiple thread
+# `Batch Processing Scalability`
+
+# `1. Running Step through multiple thread`
 
 We can run Step through multiple step using `.taskExecutor()` method on StepBuilder. But we have to consider few things
 like all threads might do the same thing. Suppose: we have 3 threads all of them started reading from 0th index. That is
@@ -116,6 +118,30 @@ The output could be wrong and that has nothing to do with Spring Batch it is on 
 order. We have better solution for this.***
 
 ---
+
+# `2. Remote Chunking`
+
+***In this approach we use multiple machine for data processing. Main machine Reads and Writes data and other multiple
+machines process data. They use Queue(Kafka,RabbitMQ) for communication. `This way is out of my learning scope`.***
+
+## Pros and Cons
+
+### Pros
+
+1. Real Parallel Processing
+
+### Cons
+
+1. Overhead
+    1. System Complexity
+    2. Network Traffic
+    3. Duplicate Reading
+    4. Inducing Queue
+2. Same Code base used
+3. Tight Coupling with Spring Integration
+
+`Remote Chunking should not be used when we have a lots of data in our data Source as all the data would be sent to all
+worker mechine by queue. That is an overhead.`
 
 # Partitioner Interface
 
