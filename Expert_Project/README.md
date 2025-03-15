@@ -143,7 +143,7 @@ machines process data. They use Queue(Kafka,RabbitMQ) for communication. `This w
 `Remote Chunking should not be used when we have a lots of data in our data Source as all the data would be sent to all
 worker mechine by queue. That is an overhead.`
 
-# `Partitioning` ✔️
+# `3. Partitioning` ✔️
 
 ## Partitioner Interface
 
