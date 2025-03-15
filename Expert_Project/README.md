@@ -286,8 +286,15 @@ When using **Partition Step, Partitioner, and Worker Steps**, the execution foll
 
 1. **Job Starts**: A Spring Batch job is triggered.
 2. **Partition Step Execution**: The **Partition Step** starts execution.
-3. **Partitioning the Data**: The configured **Partitioner** divides the dataset into multiple partitions based on a given grid size.
-4. **Assigning Partitions to Worker Steps**: The `ExecutionContext` for each partition is assigned to a separate **Worker Step**.
-5. **Parallel Execution of Worker Steps**: Each **Worker Step** processes its assigned partition in parallel using a **task executor**.
-6. **Completion and Aggregation**: After all **Worker Steps** complete execution, the **Partition Step** aggregates the results.
-7. **Job Completion**: The job execution status is updated in the **JobRepository**, marking it as complete or failed if any worker step encounters an issue.
+3. **Partitioning the Data**: The configured **Partitioner** divides the dataset into multiple partitions based on a
+   given grid size.
+4. **Assigning Partitions to Worker Steps**: The `ExecutionContext` for each partition is assigned to a separate *
+   *Worker Step**.
+5. **Parallel Execution of Worker Steps**: Each **Worker Step** processes its assigned partition in parallel using a *
+   *task executor**.
+6. **Completion and Aggregation**: After all **Worker Steps** complete execution, the **Partition Step** aggregates the
+   results.
+7. **Job Completion**: The job execution status is updated in the **JobRepository**, marking it as complete or failed if
+   any worker step encounters an issue.
+
+`Flow is used to run multiple steps in parallel but Pertition Step is used to pertition single step.`

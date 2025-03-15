@@ -89,6 +89,21 @@ public class UserScoreProcessor {
                 .build();
     }
 
+    // TODO : 3
+    @Bean
+    @Qualifier("partitionStep")
+    Step partitionStep(JobRepository jobRepository,
+                       @Qualifier("singleThreadUserScoreStep") Step singleThreadUserScoreStep) {
+        return new StepBuilder("partitionStep", jobRepository)
+                .partitioner("partitionStepPartitioner", new SessionActionPartitioner())
+                .step(singleThreadUserScoreStep) // Use singleThreadUserScoreStep
+                .taskExecutor(new SimpleAsyncTaskExecutor())
+                .gridSize(3) // 3 means 3 threads and 3 partitions
+                .build();
+    }
+
+
+    // TODO : 1
     @Bean
     @Qualifier("singleThreadUserScoreStep")
     Step singleThreadUserScoreStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
@@ -103,6 +118,7 @@ public class UserScoreProcessor {
                 .build();
     }
 
+    // TODO : 2
     @Bean
     @Qualifier("multiThreadUserScoreStep")
     Step multiThreadUserScoreStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,

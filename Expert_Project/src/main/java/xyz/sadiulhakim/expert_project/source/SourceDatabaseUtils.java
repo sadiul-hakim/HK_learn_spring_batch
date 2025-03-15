@@ -75,6 +75,8 @@ public class SourceDatabaseUtils {
                                                                               int partitionCount, int partitionIndex) {
         PostgresPagingQueryProvider queryProvider = selectAllSessionActionsProvider(tableName);
         queryProvider.setWhereClause("user_id % " + partitionCount + " = " + partitionIndex);
+        // if we have partitionCount = 3 doing `%` would divide our all records in 3 part
+        // partitionCount = 3 means partitionIndex is either 0 or 1 or 2
         return queryProvider;
     }
 
