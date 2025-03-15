@@ -253,8 +253,9 @@ public Step partitionedStep(Step workerStep) {
 3. **Partitioned Step**: The step that orchestrates partitioning and worker step execution.
 4. **Task Executor**: Ensures parallel execution of worker steps.
 
-`What Partioner Step do is, It creates multiple(num of gridSize) ExecutionContext then assing those to same provided
- step ony by one and run them parallely.`
+`What Partioner Step does is, It creates multiple(num of gridSize) ExecutionContext then assing those to same provided
+ step ony by one and execute the step. For each execution new StepExecution is created. And they are named like
+ {providedStepName}:{TheKeyWeMentionInPartitionMapInPertitioner}.`
 
 ## Worker Step
 
@@ -310,3 +311,8 @@ When using **Partition Step, Partitioner, and Worker Steps**, the execution foll
    any worker step encounters an issue.
 
 `Flow is used to run multiple steps in parallel but Pertition Step is used to pertition single step.`
+
+## Types of Partitioning
+
+1. Local (Running on one machine)
+2. Remote (Running on multiple machine)
