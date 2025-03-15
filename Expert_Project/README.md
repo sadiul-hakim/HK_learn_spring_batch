@@ -210,6 +210,15 @@ tasks.
 - Distributing partitions across worker steps for parallel execution.
 - Coordinating the execution of worker steps.
 
+### Behind the Scenes
+
+The **Partition Step** involves multiple internal components that work together to enable partitioned execution:
+
+1. **Splitter**: Uses the `Partitioner` implementation to divide the workload into smaller partitions.
+2. **Handler**: Assigns each partition to an available worker step.
+3. **Task Executor**: Manages concurrent execution of worker steps.
+4. **Aggregator**: Collects results from all worker steps and determines the final execution status.
+
 ### Configuration
 
 To configure a **Partition Step**, define the **partitioned step** with a `Partitioner`:
