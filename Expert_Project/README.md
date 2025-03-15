@@ -314,5 +314,5 @@ When using **Partition Step, Partitioner, and Worker Steps**, the execution foll
 
 ## Types of Partitioning
 
-1. Local (Running on one machine)
-2. Remote (Running on multiple machine)
+1. Local (Running on one machine) ✔️
+2. Remote (Running on multiple machine) (Not of my scope for now). This need queue like kafka for communication. ⭕
