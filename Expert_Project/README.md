@@ -253,6 +253,9 @@ public Step partitionedStep(Step workerStep) {
 3. **Partitioned Step**: The step that orchestrates partitioning and worker step execution.
 4. **Task Executor**: Ensures parallel execution of worker steps.
 
+`What Partioner Step do is, It creates multiple(num of gridSize) ExecutionContext then assing those to same provided
+ step ony by one and run them parallely.`
+
 ## Worker Step
 
 ### Overview

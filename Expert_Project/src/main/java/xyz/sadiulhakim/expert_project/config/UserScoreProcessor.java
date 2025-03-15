@@ -43,9 +43,9 @@ public class UserScoreProcessor {
     @Bean
     @Qualifier("singleThreadJob")
     AbstractJob singleThreadJob(JobRepository jobRepository,
-                                @Qualifier("singleThreadUserScoreStep") Step singleThreadUserScoreStep) {
+                                @Qualifier("partitionStep") Step partitionStep) {
         return (AbstractJob) new JobBuilder("singleThreadJob", jobRepository)
-                .start(singleThreadUserScoreStep)
+                .start(partitionStep)
                 .build();
     }
 
