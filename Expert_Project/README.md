@@ -101,7 +101,7 @@ public void getJobDetails() {
 
 # `Batch Processing Scalability`
 
-# `1. Running Step through multiple thread`
+# `1. Running Step through multiple thread` ⭕
 
 We can run Step through multiple step using `.taskExecutor()` method on StepBuilder. But we have to consider few things
 like all threads might do the same thing. Suppose: we have 3 threads all of them started reading from 0th index. That is
@@ -119,7 +119,7 @@ order. We have better solution for this.***
 
 ---
 
-# `2. Remote Chunking`
+# `2. Remote Chunking`  ⭕
 
 ***In this approach we use multiple machine for data processing. Main machine Reads and Writes data and other multiple
 machines process data. They use Queue(Kafka,RabbitMQ) for communication. `This way is out of my learning scope`.***
@@ -143,7 +143,9 @@ machines process data. They use Queue(Kafka,RabbitMQ) for communication. `This w
 `Remote Chunking should not be used when we have a lots of data in our data Source as all the data would be sent to all
 worker mechine by queue. That is an overhead.`
 
-# Partitioner Interface
+# `Partitioning` ✔️
+
+## Partitioner Interface
 
 ### Overview
 
@@ -194,20 +196,86 @@ public Step partitionedStep(Step workerStep) {
 }
 ```
 
-## Differences Between JobRepository, JobExplorer, and Partitioner
+## Partition Step
 
-| Feature              | JobRepository | JobExplorer | Partitioner |
-|----------------------|---------------|-------------|-------------|
-| Read-Write           | Yes           | No          | No          |
-| Tracks Job Execution | Yes           | Yes         | No          |
-| Manages Restarts     | Yes           | No          | No          |
-| Query Job History    | No            | Yes         | No          |
-| Parallel Processing  | No            | No          | Yes         |
+### Overview
 
-## Conclusion
+A **Partition Step** in Spring Batch is a special step that uses a `Partitioner` to split the workload across multiple
+**worker steps**, enabling parallel execution. This enhances performance, especially for large-scale data processing
+tasks.
 
-- Use `JobRepository` when you need to **persist and manage job executions**.
-- Use `JobExplorer` when you need to **query job history and execution status** without modifying the data.
-- Use `Partitioner` when you need to **split and distribute workload** across multiple processing units for parallel
-  execution.
-- All three components are essential for building scalable and maintainable Spring Batch applications.
+### Responsibilities
+
+- Dividing the main step into smaller steps (partitions).
+- Distributing partitions across worker steps for parallel execution.
+- Coordinating the execution of worker steps.
+
+### Configuration
+
+To configure a **Partition Step**, define the **partitioned step** with a `Partitioner`:
+
+```java
+
+@Bean
+public Step workerStep() {
+    return stepBuilderFactory.get("workerStep")
+            .<String, String>chunk(10)
+            .reader(itemReader())
+            .processor(itemProcessor())
+            .writer(itemWriter())
+            .build();
+}
+
+@Bean
+public Step partitionedStep(Step workerStep) {
+    return stepBuilderFactory.get("partitionedStep")
+            .partitioner("workerStep", new CustomPartitioner())
+            .step(workerStep)
+            .gridSize(4) // Number of partitions
+            .taskExecutor(new SimpleAsyncTaskExecutor())
+            .build();
+}
+```
+
+### Key Components of a Partition Step
+
+1. **Partitioner**: Splits the data into multiple partitions.
+2. **Worker Step**: The step that processes each partition.
+3. **Partitioned Step**: The step that orchestrates partitioning and worker step execution.
+4. **Task Executor**: Ensures parallel execution of worker steps.
+
+## Worker Step
+
+### Overview
+
+A **Worker Step** in Spring Batch is the step that processes a single partition of data. Each partition is executed
+independently, allowing parallelism in batch processing.
+
+### Responsibilities
+
+- Processing the assigned partition of data.
+- Handling chunk-based or item-based processing.
+- Reporting execution status back to the **Partition Step**.
+
+### Configuration
+
+To define a **Worker Step**, configure a step with a reader, processor, and writer:
+
+```java
+
+@Bean
+public Step workerStep() {
+    return stepBuilderFactory.get("workerStep")
+            .<String, String>chunk(10)
+            .reader(itemReader())
+            .processor(itemProcessor())
+            .writer(itemWriter())
+            .build();
+}
+```
+
+### Key Components of a Worker Step
+
+1. **ItemReader**: Reads data for the assigned partition.
+2. **ItemProcessor**: Transforms or processes the data.
+3. **ItemWriter**: Writes the processed data to the target destination.

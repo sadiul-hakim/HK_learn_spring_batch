@@ -17,6 +17,7 @@ import org.springframework.batch.item.*;
 import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
+import org.springframework.batch.item.support.SynchronizedItemStreamWriter;
 import org.springframework.batch.item.support.builder.SynchronizedItemStreamReaderBuilder;
 import org.springframework.batch.item.support.builder.SynchronizedItemStreamWriterBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -80,7 +81,7 @@ public class UserScoreProcessor {
                 .build();
     }
 
-    ItemWriter<UserScoreUpdate> userScoreUpdateItemWriter(DataSource dataSource){
+    ItemWriter<UserScoreUpdate> userScoreUpdateItemWriter(DataSource dataSource) {
         return new JdbcBatchItemWriterBuilder<UserScoreUpdate>()
                 .dataSource(dataSource)
                 .itemPreparedStatementSetter(SourceDatabaseUtils.UPDATE_USER_SCORE_PARAMETER_SETTER)
@@ -121,10 +122,11 @@ public class UserScoreProcessor {
                                 .build()
                 )
                 .processor(getSessionActionProcessor())
-                .writer(new SynchronizedItemStreamWriterBuilder<UserScoreUpdate>()
-                        .delegate()
-                        .build()
-                )
+//                .writer(new SynchronizedItemStreamWriterBuilder<UserScoreUpdate>()
+//                        .delegate()
+//                        .build()
+//                )
+                .writer(userScoreUpdateItemWriter(dataSource))
                 .listener(beforeStepLoggerListener())
                 .taskExecutor(taskExecutor)
                 .build();
