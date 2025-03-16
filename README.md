@@ -45,15 +45,17 @@ Spring Data JDBC provides the following key classes and interfaces:
 
 ```xml
 
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-jdbc</artifactId>
-</dependency>
-<dependency>
-<groupId>org.postgresql</groupId>
-<artifactId>postgresql</artifactId>
-<scope>runtime</scope>
-</dependency>
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jdbc</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+</dependencies>
 ```
 
 ### Application Properties
