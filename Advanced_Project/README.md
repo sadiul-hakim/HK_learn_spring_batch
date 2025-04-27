@@ -475,8 +475,7 @@ skipped, improving the robustness of data processing in Spring Batch. 🚀
 
 --- 
 
-> TaskExecutorJobLauncher is for running jobs in parallel
-> SimpleFlow is for running Steps in parallel
+***TaskExecutorJobLauncher is for running jobs in parallel, SimpleFlow is for running Steps in parallel***
 
 # Spring Batch SimpleFlow
 
