@@ -472,3 +472,69 @@ And then use this listener in .listener() of StepBuilder
 
 This allows building **resilient batch jobs** where transient failures are retried, and non-critical failures are
 skipped, improving the robustness of data processing in Spring Batch. 🚀
+
+--- 
+
+> TaskExecutorJobLauncher is for running jobs in parallel
+> SimpleFlow is for running Steps in parallel
+
+# Spring Batch SimpleFlow
+
+In Spring Batch, a `SimpleFlow` is a sequence of steps that can be executed one after another, or it can be split into parallel flows. This is particularly useful when you need to control the flow of job execution and manage the execution order or parallelism of different steps.
+
+## Key Concepts
+
+- **Flow**: A `Flow` in Spring Batch represents a sequence of steps that should be executed. It can be a linear sequence or include parallel execution paths.
+- **SimpleFlow**: A subclass of `Flow` that represents a simple, non-conditional flow of steps in a job.
+- **Parallel Execution**: You can use a `SimpleFlow` to define a split flow, where multiple steps are executed in parallel.
+- **TaskExecutor**: When running multiple steps in parallel, you can pass a `TaskExecutor` (like `SimpleAsyncTaskExecutor`) to manage parallel execution.
+
+## Example Usage
+
+In this example, we define multiple `SimpleFlow` instances and split them into parallel flows using `SimpleAsyncTaskExecutor`.
+
+### Example Code:
+
+```java
+@Bean
+@Qualifier("averageScoreCalculatorJob")
+Job averageScoreCalculatorJob(JobRepository jobRepository,
+                              @Qualifier("teamAverageStep") Step teamAverageStep,
+                              @Qualifier("teamMaxPerformanceStep") Step teamMaxPerformanceStep,
+                              @Qualifier("teamMinPerformanceStep") Step teamMinPerformanceStep,
+                              @Qualifier("fileCreatorStep") Step fileCreatorStep,
+                              @Qualifier("successLoggerStep") Step successLoggerStep) {
+
+    // Define simple flows for individual steps
+    SimpleFlow teamAverageFlow = new FlowBuilder<SimpleFlow>("teamAverageFlow")
+            .start(teamAverageStep)
+            .build();
+
+    SimpleFlow teamMaxPerformanceFlow = new FlowBuilder<SimpleFlow>("teamMaxPerformanceFlow")
+            .start(teamMaxPerformanceStep)
+            .build();
+
+    SimpleFlow teamMinPerformanceFlow = new FlowBuilder<SimpleFlow>("teamMinPerformanceFlow")
+            .start(teamMinPerformanceStep)
+            .build();
+
+    // Use SimpleAsyncTaskExecutor for parallel execution
+    SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
+    taskExecutor.setVirtualThreads(true); // Enable virtual threads for parallelism
+
+    // Split flows to execute them in parallel
+    SimpleFlow performanceFlow = new FlowBuilder<SimpleFlow>("performanceFlow")
+            .split(taskExecutor)
+            .add(teamMaxPerformanceFlow, teamMinPerformanceFlow)
+            .build();
+
+    // Define job flow sequence
+    return new JobBuilder("averageScoreCalculatorJob", jobRepository)
+            .start(teamAverageFlow) // Start with team average calculation
+            .next(performanceFlow)  // Execute max and min performance steps in parallel
+            .next(fileCreatorStep)  // Create file after performance steps
+            .next(successLoggerStep) // Log success after file creation
+            .build()
+            .build();
+}
+
